@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // ⚠️ If testing on a physical phone, change 'localhost' to your PC's IP address (e.g., '192.168.1.50')
-const API_URL = 'http://localhost:8000';
+   const API_URL = 'https://lingo-ai-backend.onrender.com'; // Replace with your actual Render URL
 
 const api = axios.create({
   baseURL: API_URL,
