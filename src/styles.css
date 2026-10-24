@@ -1,0 +1,64 @@
+/* src/styles.css */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+.app-root { min-height: 100vh; display: flex; flex-direction: column; }
+
+/* Auth Screen */
+.auth-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.auth-card { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); width: 100%; max-width: 28rem; text-align: center; }
+.auth-icon { background: #ccfbf1; color: #0d9488; padding: 1rem; border-radius: 9999px; display: inline-block; margin-bottom: 1rem; }
+.auth-title { font-size: 1.875rem; font-weight: bold; margin: 0 0 0.5rem 0; color: #1f2937; }
+.auth-subtitle { color: #4b5563; margin-bottom: 2rem; }
+
+/* Forms & Buttons */
+.form-group { margin-bottom: 1rem; text-align: left; }
+.input, .select { width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem; box-sizing: border-box; margin-bottom: 1rem; transition: border-color 0.2s; }
+.input:focus, .select:focus { outline: none; border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2); }
+.btn { width: 100%; padding: 0.75rem; background-color: #0d9488; color: white; border: none; border-radius: 0.5rem; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+.btn:hover { background-color: #0f766e; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-link { background: none; border: none; color: #0d9488; font-weight: 500; cursor: pointer; margin-top: 1rem; font-size: 0.9rem; }
+.btn-link:hover { color: #0f766e; }
+.error-msg { background: #fef2f2; color: #dc2626; padding: 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; }
+
+/* Main Layout */
+.main-header { background-color: #0d9488; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+.main-header h1 { margin: 0; font-size: 1.25rem; }
+.logout-btn { background: #0f766e; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem; }
+.logout-btn:hover { background: #115e59; }
+.main-content { flex: 1; max-width: 56rem; margin: 0 auto; width: 100%; padding: 1rem; padding-bottom: 5rem; box-sizing: border-box; }
+
+/* Bottom Navigation */
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e7eb; display: flex; box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05); z-index: 10; }
+.nav-btn { flex: 1; padding: 1rem; background: none; border: none; color: #6b7280; display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 0.75rem; font-weight: 500; }
+.nav-btn.active { color: #0d9488; }
+.nav-icon { width: 1.5rem; height: 1.5rem; margin-bottom: 0.25rem; }
+
+/* Chat Screen */
+.chat-controls { background: white; padding: 1rem; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; padding-right: 0.5rem; height: 60vh; }
+.message-row { display: flex; }
+.message-row.user { justify-content: flex-end; }
+.message-row.ai { justify-content: flex-start; }
+.message-bubble { max-width: 80%; padding: 1rem; border-radius: 1rem; white-space: pre-wrap; line-height: 1.5; }
+.message-bubble.user { background-color: #0d9488; color: white; border-bottom-right-radius: 0.25rem; }
+.message-bubble.ai { background-color: white; color: #1f2937; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-bottom-left-radius: 0.25rem; }
+.chat-input-area { display: flex; gap: 0.5rem; }
+.chat-input-area .input { margin-bottom: 0; flex: 1; }
+.send-btn { width: auto; padding: 0 1.5rem; margin-bottom: 0; }
+
+/* Upload Screen */
+.upload-card { background: white; padding: 1.5rem; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.upload-title { font-size: 1.5rem; font-weight: bold; margin-top: 0; margin-bottom: 1.5rem; color: #1f2937; }
+.file-drop { border: 2px dashed #d1d5db; border-radius: 0.5rem; padding: 1.5rem; text-align: center; cursor: pointer; transition: border-color 0.2s; margin-bottom: 1rem; }
+.file-drop:hover { border-color: #0d9488; }
+.form-row { display: flex; gap: 1rem; margin-bottom: 1rem; }
+.form-row > * { flex: 1; margin-bottom: 0; }
+.status-msg { padding: 0.75rem; border-radius: 0.5rem; text-align: center; margin-bottom: 1rem; font-size: 0.9rem; }
+.status-msg.success { background: #f0fdf4; color: #16a34a; }
+.status-msg.error { background: #fef2f2; color: #dc2626; }
