@@ -11,7 +11,10 @@ function App() {
   }, []);
 
   const handleLogin = () => setIsAuthenticated(true);
-  const handleLogout = () => { authService.logout(); setIsAuthenticated(false); };
+  const handleLogout = () => { 
+    authService.logout(); 
+    setIsAuthenticated(false); 
+  };
 
   return (
     <div className="app-root">

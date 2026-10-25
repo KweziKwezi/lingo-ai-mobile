@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-// ⚠️ If testing on a physical phone, change 'localhost' to your PC's IP address (e.g., '192.168.1.50')
-   const API_URL = 'https://lingo-ai-backend.onrender.com'; // Replace with your actual Render URL
+const API_URL = 'https://lingo-ai-backend.onrender.com';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -55,15 +54,17 @@ export const bookService = {
 };
 
 export const tutorService = {
-  askQuestion: async (question, language, bookId = null) => {
+  askQuestion: async (question, language, bookId = null, chapter = null, conversationId = null) => {
     const response = await api.post('/ask', {
       question,
       language,
       book_id: bookId,
+      chapter,
+      conversation_id: conversationId
     });
     return response.data;
   },
-    generateStudyMaterial: async (topic, language, bookId, type, numItems) => {
+  generateStudyMaterial: async (topic, language, bookId, type, numItems) => {
     const response = await api.post('/generate-study-material', {
       topic,
       language,
@@ -73,14 +74,13 @@ export const tutorService = {
     });
     return response.data;
   },
-    generateQuiz: async (bookId, numQuestions) => {
+  generateQuiz: async (bookId, numQuestions) => {
     const response = await api.post('/generate-quiz', {
       book_id: bookId,
       num_questions: numQuestions,
     });
     return response.data;
   },
-
   gradeQuiz: async (questions, userAnswers) => {
     const response = await api.post('/grade-quiz', {
       questions: questions,
@@ -98,17 +98,14 @@ export const sessionService = {
     });
     return response.data;
   },
-  
   getSessions: async () => {
     const response = await api.get('/sessions');
     return response.data;
   },
-  
   getSessionHistory: async (sessionId) => {
     const response = await api.get(`/sessions/${sessionId}/history`);
     return response.data;
   },
-  
   saveQuizAttempt: async (sessionId, questions, userAnswers, results, score, maxScore) => {
     const response = await api.post(`/sessions/${sessionId}/save-attempt`, {
       session_id: sessionId,
@@ -121,6 +118,7 @@ export const sessionService = {
     return response.data;
   }
 };
+
 export const chatService = {
   createConversation: async (bookId, title) => {
     const response = await api.post('/conversations', {
@@ -129,17 +127,14 @@ export const chatService = {
     });
     return response.data;
   },
-  
   getConversations: async () => {
     const response = await api.get('/conversations');
     return response.data;
   },
-  
   getMessages: async (conversationId) => {
     const response = await api.get(`/conversations/${conversationId}/messages`);
     return response.data;
   },
-  
   addMessage: async (conversationId, role, content) => {
     const response = await api.post(`/conversations/${conversationId}/messages`, {
       conversation_id: conversationId,
@@ -148,9 +143,29 @@ export const chatService = {
     });
     return response.data;
   },
-  
   deleteConversation: async (conversationId) => {
     const response = await api.delete(`/conversations/${conversationId}`);
+    return response.data;
+  }
+};
+
+export const adminService = {
+  uploadLibraryBook: async (file, title, grade, subject, type) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', title);
+    formData.append('grade', grade);
+    formData.append('subject', subject);
+    formData.append('type', type);
+    
+    const response = await api.post('/admin/upload-library', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  getPublicLibrary: async () => {
+    const response = await api.get('/library');
     return response.data;
   }
 };
