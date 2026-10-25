@@ -72,5 +72,20 @@ export const tutorService = {
       num_items: numItems,
     });
     return response.data;
+  },
+    generateQuiz: async (bookId, numQuestions) => {
+    const response = await api.post('/generate-quiz', {
+      book_id: bookId,
+      num_questions: numQuestions,
+    });
+    return response.data;
+  },
+
+  gradeQuiz: async (questions, userAnswers) => {
+    const response = await api.post('/grade-quiz', {
+      questions: questions,
+      user_answers: userAnswers,
+    });
+    return response.data;
   }
 };
