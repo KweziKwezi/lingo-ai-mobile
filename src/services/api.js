@@ -121,3 +121,36 @@ export const sessionService = {
     return response.data;
   }
 };
+export const chatService = {
+  createConversation: async (bookId, title) => {
+    const response = await api.post('/conversations', {
+      book_id: bookId,
+      title: title,
+    });
+    return response.data;
+  },
+  
+  getConversations: async () => {
+    const response = await api.get('/conversations');
+    return response.data;
+  },
+  
+  getMessages: async (conversationId) => {
+    const response = await api.get(`/conversations/${conversationId}/messages`);
+    return response.data;
+  },
+  
+  addMessage: async (conversationId, role, content) => {
+    const response = await api.post(`/conversations/${conversationId}/messages`, {
+      conversation_id: conversationId,
+      role: role,
+      content: content,
+    });
+    return response.data;
+  },
+  
+  deleteConversation: async (conversationId) => {
+    const response = await api.delete(`/conversations/${conversationId}`);
+    return response.data;
+  }
+};
