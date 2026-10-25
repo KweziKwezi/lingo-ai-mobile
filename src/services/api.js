@@ -62,5 +62,15 @@ export const tutorService = {
       book_id: bookId,
     });
     return response.data;
+  },
+    generateStudyMaterial: async (topic, language, bookId, type, numItems) => {
+    const response = await api.post('/generate-study-material', {
+      topic,
+      language,
+      book_id: bookId,
+      type,
+      num_items: numItems,
+    });
+    return response.data;
   }
 };
