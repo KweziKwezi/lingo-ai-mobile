@@ -169,3 +169,13 @@ export const adminService = {
     return response.data;
   }
 };
+export const libraryService = {
+  getPublicLibrary: async () => {
+    const response = await api.get('/library');
+    return response.data;
+  },
+  getBookContent: async (bookId) => {
+    const response = await api.get(`/library/${bookId}/content`);
+    return response.data;
+  }
+};
