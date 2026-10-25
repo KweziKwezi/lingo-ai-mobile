@@ -101,7 +101,19 @@ export default function StudyTools() {
   }
 
   // --- RENDER: RESULTS SCREEN ---
+    // --- RENDER: RESULTS SCREEN ---
   if (step === 'results' && results) {
+    // Safety check: if graded_questions is missing, show an error instead of crashing
+    if (!results.graded_questions || !Array.isArray(results.graded_questions)) {
+      return (
+        <div className="upload-card" style={{textAlign: 'center'}}>
+          <h2 style={{color: '#dc2626'}}>Grading Error</h2>
+          <p>The AI could not format the grading results properly.</p>
+          <button onClick={resetQuiz} className="btn" style={{marginTop: '1rem'}}>Try Again</button>
+        </div>
+      );
+    }
+
     return (
       <div>
         <div className="results-header">
@@ -112,27 +124,29 @@ export default function StudyTools() {
 
         {results.graded_questions.map((q) => {
           const originalQ = questions.find(orig => orig.id === q.id);
+          if (!originalQ) return null; // Safety skip
+
           return (
             <div key={q.id} className="quiz-question-card">
               <div className="quiz-q-header">
-                <span className="quiz-q-type">{originalQ.type}</span>
+                <span className="quiz-q-type">{originalQ.type.toUpperCase()}</span>
                 <span className="quiz-q-marks">{q.awarded_marks} / {originalQ.marks} marks</span>
               </div>
               <div className="quiz-q-text">{originalQ.question}</div>
               
               {originalQ.type === 'mcq' && (
                 <div style={{color: '#4b5563', marginBottom: '1rem'}}>
-                  <strong>Your answer:</strong> {originalQ.options[userAnswers[q.id]]}
+                  <strong>Your answer:</strong> {originalQ.options[userAnswers[q.id]] || "Skipped"}
                 </div>
               )}
               {(originalQ.type === 'short' || originalQ.type === 'long') && (
                 <div style={{color: '#4b5563', marginBottom: '1rem', whiteSpace: 'pre-wrap'}}>
-                  <strong>Your answer:</strong><br/>{userAnswers[q.id]}
+                  <strong>Your answer:</strong><br/>{userAnswers[q.id] || "Skipped"}
                 </div>
               )}
 
               <div className={`feedback-box ${q.is_correct ? 'correct' : 'incorrect'}`}>
-                <strong>{q.is_correct ? '✅ Correct!' : '❌ Incorrect'}</strong>
+                <strong>{q.is_correct ? '✅ Correct!' : '❌ Incorrect / Partial'}</strong>
                 {q.feedback}
               </div>
             </div>
