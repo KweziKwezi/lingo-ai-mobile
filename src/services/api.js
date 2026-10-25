@@ -89,3 +89,35 @@ export const tutorService = {
     return response.data;
   }
 };
+
+export const sessionService = {
+  createSession: async (bookId, title) => {
+    const response = await api.post('/sessions', {
+      book_id: bookId,
+      title: title,
+    });
+    return response.data;
+  },
+  
+  getSessions: async () => {
+    const response = await api.get('/sessions');
+    return response.data;
+  },
+  
+  getSessionHistory: async (sessionId) => {
+    const response = await api.get(`/sessions/${sessionId}/history`);
+    return response.data;
+  },
+  
+  saveQuizAttempt: async (sessionId, questions, userAnswers, results, score, maxScore) => {
+    const response = await api.post(`/sessions/${sessionId}/save-attempt`, {
+      session_id: sessionId,
+      questions: questions,
+      user_answers: userAnswers,
+      results: results,
+      score: score,
+      max_score: maxScore,
+    });
+    return response.data;
+  }
+};
