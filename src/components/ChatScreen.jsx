@@ -88,10 +88,9 @@ export default function ChatScreen() {
       const assistantMessage = { role: 'assistant', content: response.answer };
       setMessages([...newMessages, assistantMessage]);
 
-      // If this is a new conversation, save the conversation ID
       if (!currentConversationId && response.conversation_id) {
         setCurrentConversationId(response.conversation_id);
-        loadConversations(); // Refresh the sidebar
+        loadConversations();
       }
     } catch (err) {
       console.error('Error:', err);
@@ -105,40 +104,16 @@ export default function ChatScreen() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100%', position: 'relative' }}>
-      {/* Sidebar Toggle Button */}
-      <button
-        onClick={() => setShowSidebar(!showSidebar)}
-        style={{
-          position: 'absolute',
-          top: '1rem',
-          left: '1rem',
-          zIndex: 10,
-          background: '#0d9488',
-          color: 'white',
-          border: 'none',
-          borderRadius: '0.5rem',
-          padding: '0.5rem 1rem',
-          cursor: 'pointer',
-          fontWeight: 600
-        }}
-      >
-        {showSidebar ? '✕ Close' : '☰ History'}
-      </button>
-
+    <div style={{ display: 'flex', height: 'calc(100vh - 120px)', position: 'relative' }}>
       {/* Chat History Sidebar */}
       {showSidebar && (
         <div style={{
-          width: '300px',
+          width: '280px',
           background: '#f9fafb',
           borderRight: '1px solid #e5e7eb',
           padding: '1rem',
           overflowY: 'auto',
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          zIndex: 5
+          flexShrink: 0
         }}>
           <button
             onClick={handleNewChat}
@@ -162,7 +137,7 @@ export default function ChatScreen() {
                   position: 'relative'
                 }}
               >
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem', paddingRight: '1.5rem' }}>
                   {conv.title}
                 </div>
                 {conv.book_title && (
@@ -186,7 +161,7 @@ export default function ChatScreen() {
                     fontSize: '1rem'
                   }}
                 >
-                  🗑️
+                  ️
                 </button>
               </div>
             ))}
@@ -199,23 +174,39 @@ export default function ChatScreen() {
         flex: 1, 
         display: 'flex', 
         flexDirection: 'column',
-        marginLeft: showSidebar ? '300px' : '0',
-        transition: 'margin-left 0.3s'
+        overflow: 'hidden'
       }}>
-        {/* Book & Language Selector */}
+        {/* Header with History Button and Selectors */}
         <div style={{ 
           padding: '1rem', 
           background: '#f9fafb', 
           borderBottom: '1px solid #e5e7eb',
           display: 'flex',
-          gap: '1rem',
-          alignItems: 'center'
+          gap: '0.75rem',
+          alignItems: 'center',
+          flexWrap: 'wrap'
         }}>
+          <button
+            onClick={() => setShowSidebar(!showSidebar)}
+            style={{
+              background: '#0d9488',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.5rem',
+              padding: '0.5rem 1rem',
+              cursor: 'pointer',
+              fontWeight: 600,
+              whiteSpace: 'nowrap'
+            }}
+          >
+            ☰ History
+          </button>
+
           <select
             value={selectedBook}
             onChange={(e) => setSelectedBook(e.target.value)}
             className="select"
-            style={{ flex: 1 }}
+            style={{ flex: 1, minWidth: '150px' }}
           >
             <option value="">General Knowledge</option>
             {books.map((book) => (
@@ -224,11 +215,12 @@ export default function ChatScreen() {
               </option>
             ))}
           </select>
+
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
             className="select"
-            style={{ width: '150px' }}
+            style={{ width: '140px' }}
           >
             <option>English</option>
             <option>isiZulu</option>
@@ -239,11 +231,11 @@ export default function ChatScreen() {
           </select>
         </div>
 
-        {/* Messages */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+        {/* Messages Area */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
           {messages.length === 0 && (
             <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '3rem' }}>
-              <h3>👋 Hello! I'm your AI tutor.</h3>
+              <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>👋 Hello! I'm your AI tutor.</h3>
               <p>Ask me anything about your textbooks or general knowledge!</p>
             </div>
           )}
@@ -258,12 +250,13 @@ export default function ChatScreen() {
             >
               <div
                 style={{
-                  maxWidth: '70%',
-                  padding: '0.75rem 1rem',
+                  maxWidth: '75%',
+                  padding: '0.875rem 1.25rem',
                   borderRadius: '1rem',
                   background: msg.role === 'user' ? '#0d9488' : '#f3f4f6',
                   color: msg.role === 'user' ? 'white' : '#1f2937',
-                  whiteSpace: 'pre-wrap'
+                  whiteSpace: 'pre-wrap',
+                  lineHeight: 1.5
                 }}
               >
                 {msg.content}
@@ -271,8 +264,7 @@ export default function ChatScreen() {
             </div>
           ))}
           {loading && (
-            <div style={{ textAlign: 'center', color: '#6b7280' }}>
-              <div className="loading-spinner"></div>
+            <div style={{ textAlign: 'center', color: '#6b7280', padding: '1rem' }}>
               <p>Thinking...</p>
             </div>
           )}
@@ -285,7 +277,8 @@ export default function ChatScreen() {
           borderTop: '1px solid #e5e7eb', 
           background: 'white',
           display: 'flex',
-          gap: '0.5rem'
+          gap: '0.75rem',
+          alignItems: 'center'
         }}>
           <input
             type="text"
@@ -294,14 +287,14 @@ export default function ChatScreen() {
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Ask your tutor a question..."
             className="input"
-            style={{ flex: 1 }}
+            style={{ flex: 1, padding: '0.75rem 1rem' }}
             disabled={loading}
           />
           <button
             onClick={handleSend}
             disabled={loading || !input.trim()}
             className="btn"
-            style={{ padding: '0.75rem 1.5rem' }}
+            style={{ padding: '0.75rem 1.5rem', whiteSpace: 'nowrap' }}
           >
             Send
           </button>
