@@ -36,14 +36,28 @@ export default function StudyTools() {
   };
 
   const handleSubmitQuiz = async () => {
-    setLoading(true); setError('');
+    setLoading(true); 
+    setError('');
     try {
       const res = await tutorService.gradeQuiz(questions, userAnswers);
       setResults(res);
       setStep('results');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to grade quiz.');
-    } finally { setLoading(false); }
+      // Safely extract the error message so React doesn't crash trying to render an object
+      const detail = err.response?.data?.detail;
+      let errorMsg = 'Failed to grade quiz. Please try again.';
+      
+      if (Array.isArray(detail)) {
+        // If it's a list of Pydantic validation errors, join their messages
+        errorMsg = detail.map(d => d.msg || d).join(', ');
+      } else if (typeof detail === 'string') {
+        errorMsg = detail;
+      }
+      
+      setError(errorMsg);
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const resetQuiz = () => {
