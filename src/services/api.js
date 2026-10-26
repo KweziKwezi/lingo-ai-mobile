@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const API_URL = 'https://lingo-ai-backend.onrender.com';
 
-// ADDED 'export' HERE SO OTHER FILES CAN USE IT
+// Exported so other files can use it directly
 export const api = axios.create({
   baseURL: API_URL,
 });
@@ -146,6 +146,25 @@ export const chatService = {
   },
   deleteConversation: async (conversationId) => {
     const response = await api.delete(`/conversations/${conversationId}`);
+    return response.data;
+  }
+};
+
+export const libraryService = {
+  getPublicLibrary: async () => {
+    const response = await api.get('/library');
+    return response.data;
+  },
+  getPdfUrl: (bookId) => `${API_URL}/library/${bookId}/pdf`,
+  getPageText: async (bookId, pageNum) => {
+    const response = await api.get(`/library/${bookId}/page/${pageNum}/text`);
+    return response.data;
+  },
+  translateText: async (text, targetLanguage) => {
+    const response = await api.post('/translate', {
+      text: text,
+      target_language: targetLanguage
+    });
     return response.data;
   }
 };
