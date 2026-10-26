@@ -67,7 +67,8 @@ export default function BookReader({ book, onBack }) {
         {/* PDF Viewer (Left Side) */}
         <div style={{ flex: showTranslation ? 1 : 1, height: '100%', background: '#525659' }}>
           <iframe 
-            src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+            key={pageNum} 
+            src={`${pdfUrl}#page=${pageNum}&toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
             style={{ width: '100%', height: '100%', border: 'none' }}
             title="Book Reader"
           />

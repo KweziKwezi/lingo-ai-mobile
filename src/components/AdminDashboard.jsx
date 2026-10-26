@@ -52,6 +52,15 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   };
+    const handleDelete = async (bookId, title) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${title}" from the public library?`)) return;
+    try {
+      await adminService.deleteLibraryBook(bookId);
+      loadLibrary(); // Refresh the list
+    } catch (err) {
+      alert('Failed to delete book. Please try again.');
+    }
+  };
 
   return (
     <div style={{ padding: '1.5rem', maxWidth: '800px', margin: '0 auto' }}>
@@ -147,17 +156,26 @@ export default function AdminDashboard() {
         ) : (
           <div style={{ display: 'grid', gap: '1rem' }}>
             {books.map((book) => (
-              <div key={book.id} style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 600, color: '#1f2937' }}>{book.title}</div>
-                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                    Grade {book.grade} • {book.subject} • {book.type}
-                  </div>
+                          <div key={book.id} style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontWeight: 600, color: '#1f2937' }}>{book.title}</div>
+                <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                  Grade {book.grade} • {book.subject} • {book.type}
                 </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                   {new Date(book.uploaded_at).toLocaleDateString()}
                 </div>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleDelete(book.id, book.title); }}
+                  style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '1.2rem', padding: '0.25rem' }}
+                  title="Delete Book"
+                >
+                  🗑️
+                </button>
               </div>
+            </div>
             ))}
           </div>
         )}

@@ -167,7 +167,12 @@ export const adminService = {
   getPublicLibrary: async () => {
     const response = await api.get('/library');
     return response.data;
+  },
+   deleteLibraryBook: async (bookId) => {
+    const response = await api.delete(`/admin/library/${bookId}`);
+    return response.data;
   }
+  
 };
 export const libraryService = {
   getPublicLibrary: async () => {
