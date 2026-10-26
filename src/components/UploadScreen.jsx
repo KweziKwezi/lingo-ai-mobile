@@ -51,6 +51,7 @@ export default function UploadScreen() {
             <option value="textbook">Textbook</option>
             <option value="slides">Class Slides</option>
             <option value="notes">Notes</option>
+            <option value="past_paper">Past Paper (Public)</option>
           </select>
         </div>
 

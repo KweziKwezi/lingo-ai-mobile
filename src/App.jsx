@@ -1,24 +1,32 @@
 import { useState, useEffect } from 'react';
-import { authService } from './services/api';
+import { authService, api } from './services/api';
 import LoginScreen from './components/LoginScreen';
 import MainApp from './components/MainApp';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(authService.isAuthenticated());
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    setIsAuthenticated(authService.isAuthenticated());
-  }, []);
+    if (isAuthenticated) {
+      // Fetch user profile to check if admin
+      api.get('/me').then(res => {
+        // CHANGE THIS EMAIL TO YOUR ACTUAL ADMIN EMAIL
+        setIsAdmin(res.data.email === 'Cyberglitch501@gmail.com'); 
+      }).catch(() => setIsAdmin(false));
+    }
+  }, [isAuthenticated]);
 
   const handleLogin = () => setIsAuthenticated(true);
   const handleLogout = () => { 
     authService.logout(); 
     setIsAuthenticated(false); 
+    setIsAdmin(false);
   };
 
   return (
     <div className="app-root">
-      {isAuthenticated ? <MainApp onLogout={handleLogout} /> : <LoginScreen onLogin={handleLogin} />}
+      {isAuthenticated ? <MainApp onLogout={handleLogout} isAdmin={isAdmin} /> : <LoginScreen onLogin={handleLogin} />}
     </div>
   );
 }
