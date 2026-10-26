@@ -1,25 +1,33 @@
 import { useState, useEffect } from 'react';
-import { adminService } from '../services/api';
+import { adminService, pastPaperService } from '../services/api';
 
 export default function AdminDashboard() {
+  // Form states
+  const [uploadMode, setUploadMode] = useState('textbook'); // 'textbook' or 'past_paper'
   const [title, setTitle] = useState('');
   const [grade, setGrade] = useState('');
   const [subject, setSubject] = useState('');
   const [type, setType] = useState('textbook');
   const [file, setFile] = useState(null);
   
+  // Past paper specific states
+  const [institutionType, setInstitutionType] = useState('High School');
+  const [institutionName, setInstitutionName] = useState('');
+  const [moduleCode, setModuleCode] = useState('');
+  const [year, setYear] = useState(new Date().getFullYear());
+  
+  // UI states
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  
+  // Lists
   const [books, setBooks] = useState([]);
-  const [uploadMode, setUploadMode] = useState('textbook'); // 'textbook' or 'past_paper'
-const [institutionType, setInstitutionType] = useState('High School');
-const [institutionName, setInstitutionName] = useState('');
-const [moduleCode, setModuleCode] = useState('');
-const [year, setYear] = useState(new Date().getFullYear());
+  const [papers, setPapers] = useState([]);
 
   useEffect(() => {
     loadLibrary();
+    loadPapers();
   }, []);
 
   const loadLibrary = async () => {
@@ -31,7 +39,16 @@ const [year, setYear] = useState(new Date().getFullYear());
     }
   };
 
-   const handleUpload = async (e) => {
+  const loadPapers = async () => {
+    try {
+      const data = await pastPaperService.getPastPapers();
+      setPapers(data);
+    } catch (err) {
+      console.error('Failed to load past papers:', err);
+    }
+  };
+
+  const handleUpload = async (e) => {
     e.preventDefault();
     if (!file || !title) {
       setError('Please fill in required fields and select a file.');
@@ -44,7 +61,14 @@ const [year, setYear] = useState(new Date().getFullYear());
 
     try {
       if (uploadMode === 'past_paper') {
-        await pastPaperService.uploadPastPaper(file, institutionType, institutionName, title, moduleCode, year);
+        await pastPaperService.uploadPastPaper(
+          file, 
+          institutionType, 
+          institutionName, 
+          title, // subject_or_module
+          moduleCode, 
+          year
+        );
         setMessage('Past paper successfully added to the Hub!');
       } else {
         await adminService.uploadLibraryBook(file, title, grade, subject, type);
@@ -61,7 +85,7 @@ const [year, setYear] = useState(new Date().getFullYear());
       
       // Refresh lists
       loadLibrary();
-      loadPapers(); // Add this to refresh past papers list if you keep them on the same dashboard
+      loadPapers();
     } catch (err) {
       const detail = err.response?.data?.detail || 'Upload failed. Are you logged in as the admin?';
       setError(detail);
@@ -70,49 +94,40 @@ const [year, setYear] = useState(new Date().getFullYear());
     }
   };
 
-    setLoading(true);
-    setMessage('');
-    setError('');
-
-    try {
-      const res = await adminService.uploadLibraryBook(file, title, grade, subject, type);
-      setMessage(res.message);
-      setTitle('');
-      setGrade('');
-      setSubject('');
-      setFile(null);
-      loadLibrary();
-    } catch (err) {
-      const detail = err.response?.data?.detail || 'Upload failed. Are you logged in as the admin?';
-      setError(detail);
-    } finally {
-      setLoading(false);
-    }
-  };
-    const handleDelete = async (bookId, title) => {
-    if (!window.confirm(`Are you sure you want to permanently delete "${title}" from the public library?`)) return;
+  const handleDelete = async (bookId, itemTitle) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${itemTitle}"?`)) return;
     try {
       await adminService.deleteLibraryBook(bookId);
-      loadLibrary(); // Refresh the list
+      loadLibrary();
+      loadPapers();
     } catch (err) {
-      alert('Failed to delete book. Please try again.');
+      alert('Failed to delete. Please try again.');
     }
   };
 
   return (
-    <div style={{ padding: '1.5rem', maxWidth: '800px', margin: '0 auto' }}>
-      <h2 style={{ color: '#0d9488', marginBottom: '1.5rem' }}>🛡️ Admin Library Dashboard</h2>
+    <div style={{ padding: '1.5rem', maxWidth: '900px', margin: '0 auto' }}>
+      <h2 style={{ color: '#0d9488', marginBottom: '1.5rem' }}>🛡️ Admin Dashboard</h2>
 
+      {/* Upload Form */}
       <div style={{ background: '#f9fafb', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', marginBottom: '2rem' }}>
-        <h3 style={{ marginTop: 0, color: '#1f2937' }}>Upload to Public Library</h3>
+        <h3 style={{ marginTop: 0, color: '#1f2937' }}>Upload Content</h3>
         
-                <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* Mode Toggle */}
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <button type="button" onClick={() => setUploadMode('textbook')} style={{ flex: 1, padding: '0.5rem', borderRadius: '0.5rem', border: 'none', background: uploadMode === 'textbook' ? '#0d9488' : '#e5e7eb', color: uploadMode === 'textbook' ? 'white' : '#6b7280', fontWeight: 600, cursor: 'pointer' }}>
+            <button 
+              type="button" 
+              onClick={() => setUploadMode('textbook')} 
+              style={{ flex: 1, padding: '0.5rem', borderRadius: '0.5rem', border: 'none', background: uploadMode === 'textbook' ? '#0d9488' : '#e5e7eb', color: uploadMode === 'textbook' ? 'white' : '#6b7280', fontWeight: 600, cursor: 'pointer' }}
+            >
               📚 Public Textbook
             </button>
-            <button type="button" onClick={() => setUploadMode('past_paper')} style={{ flex: 1, padding: '0.5rem', borderRadius: '0.5rem', border: 'none', background: uploadMode === 'past_paper' ? '#8b5cf6' : '#e5e7eb', color: uploadMode === 'past_paper' ? 'white' : '#6b7280', fontWeight: 600, cursor: 'pointer' }}>
+            <button 
+              type="button" 
+              onClick={() => setUploadMode('past_paper')} 
+              style={{ flex: 1, padding: '0.5rem', borderRadius: '0.5rem', border: 'none', background: uploadMode === 'past_paper' ? '#8b5cf6' : '#e5e7eb', color: uploadMode === 'past_paper' ? 'white' : '#6b7280', fontWeight: 600, cursor: 'pointer' }}
+            >
               📝 Past Exam Paper
             </button>
           </div>
@@ -195,33 +210,67 @@ const [year, setYear] = useState(new Date().getFullYear());
         </form>
       </div>
 
-      <div>
+      {/* Current Public Library List */}
+      <div style={{ marginBottom: '2rem' }}>
         <h3 style={{ color: '#1f2937', marginBottom: '1rem' }}>Current Public Library ({books.length})</h3>
         {books.length === 0 ? (
           <p style={{ color: '#6b7280' }}>No books published yet.</p>
         ) : (
           <div style={{ display: 'grid', gap: '1rem' }}>
             {books.map((book) => (
-                          <div key={book.id} style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontWeight: 600, color: '#1f2937' }}>{book.title}</div>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                  Grade {book.grade} • {book.subject} • {book.type}
+              <div key={book.id} style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: '#1f2937' }}>{book.title}</div>
+                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    Grade {book.grade} • {book.subject} • {book.type}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                    {new Date(book.uploaded_at).toLocaleDateString()}
+                  </div>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleDelete(book.id, book.title); }}
+                    style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '1.2rem', padding: '0.25rem' }}
+                    title="Delete"
+                  >
+                    🗑️
+                  </button>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                  {new Date(book.uploaded_at).toLocaleDateString()}
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Current Past Papers List */}
+      <div>
+        <h3 style={{ color: '#1f2937', marginBottom: '1rem' }}>Current Past Papers ({papers.length})</h3>
+        {papers.length === 0 ? (
+          <p style={{ color: '#6b7280' }}>No past papers published yet.</p>
+        ) : (
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            {papers.map((paper) => (
+              <div key={paper.id} style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: '#1f2937' }}>{paper.subject} ({paper.year})</div>
+                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    {paper.institution_name} • {paper.institution_type} {paper.module_code ? `• ${paper.module_code}` : ''}
+                  </div>
                 </div>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleDelete(book.id, book.title); }}
-                  style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '1.2rem', padding: '0.25rem' }}
-                  title="Delete Book"
-                >
-                  🗑️
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                    {new Date(paper.uploaded_at).toLocaleDateString()}
+                  </div>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleDelete(paper.id, paper.subject); }}
+                    style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '1.2rem', padding: '0.25rem' }}
+                    title="Delete"
+                  >
+                    🗑️
+                  </button>
+                </div>
               </div>
-            </div>
             ))}
           </div>
         )}
