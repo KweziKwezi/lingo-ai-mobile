@@ -174,8 +174,18 @@ export const libraryService = {
     const response = await api.get('/library');
     return response.data;
   },
-  getBookContent: async (bookId) => {
-    const response = await api.get(`/library/${bookId}/content`);
+  getPdfUrl: (bookId) => `${API_URL}/library/${bookId}/pdf`, // New: Returns the direct URL to the PDF
+  
+  getPageText: async (bookId, pageNum) => {
+    const response = await api.get(`/library/${bookId}/page/${pageNum}/text`);
+    return response.data;
+  },
+  
+  translateText: async (text, targetLanguage) => {
+    const response = await api.post('/translate', {
+      text: text,
+      target_language: targetLanguage
+    });
     return response.data;
   }
 };
