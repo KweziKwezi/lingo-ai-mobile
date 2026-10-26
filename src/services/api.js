@@ -2,7 +2,8 @@ import axios from 'axios';
 
 const API_URL = 'https://lingo-ai-backend.onrender.com';
 
-const api = axios.create({
+// ADDED 'export' HERE SO OTHER FILES CAN USE IT
+export const api = axios.create({
   baseURL: API_URL,
 });
 
@@ -149,6 +150,36 @@ export const chatService = {
   }
 };
 
+export const pastPaperService = {
+  getPastPapers: async (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.institution_type) params.append('institution_type', filters.institution_type);
+    if (filters.year) params.append('year', filters.year);
+    
+    const response = await api.get(`/past-papers?${params.toString()}`);
+    return response.data;
+  },
+  
+  downloadPastPaper: (bookId) => {
+    return `${API_URL}/past-papers/${bookId}/download`;
+  },
+
+  uploadPastPaper: async (file, institution_type, institution_name, subject_or_module, module_code, year) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('institution_type', institution_type);
+    formData.append('institution_name', institution_name);
+    formData.append('subject_or_module', subject_or_module);
+    formData.append('module_code', module_code);
+    formData.append('year', year);
+    
+    const response = await api.post('/admin/upload-past-paper', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+};
+
 export const adminService = {
   uploadLibraryBook: async (file, title, grade, subject, type) => {
     const formData = new FormData();
@@ -168,59 +199,9 @@ export const adminService = {
     const response = await api.get('/library');
     return response.data;
   },
-   deleteLibraryBook: async (bookId) => {
-    const response = await api.delete(`/admin/library/${bookId}`);
-    return response.data;
-  }
-  
-};
-export const libraryService = {
-  getPublicLibrary: async () => {
-    const response = await api.get('/library');
-    return response.data;
-  },
-  getPdfUrl: (bookId) => `${API_URL}/library/${bookId}/pdf`, // New: Returns the direct URL to the PDF
-  
-  getPageText: async (bookId, pageNum) => {
-    const response = await api.get(`/library/${bookId}/page/${pageNum}/text`);
-    return response.data;
-  },
-  
-  translateText: async (text, targetLanguage) => {
-    const response = await api.post('/translate', {
-      text: text,
-      target_language: targetLanguage
-    });
-    return response.data;
-  }
-};
-export const pastPaperService = {
-  getPastPapers: async (filters = {}) => {
-    const params = new URLSearchParams();
-    if (filters.institution_type) params.append('institution_type', filters.institution_type);
-    if (filters.year) params.append('year', filters.year);
-    
-    const response = await api.get(`/past-papers?${params.toString()}`);
-    return response.data;
-  },
-  
-  downloadPastPaper: (bookId) => {
-    // Returns the direct download URL
-    return `${API_URL}/past-papers/${bookId}/download`;
-  },
 
-  uploadPastPaper: async (file, institution_type, institution_name, subject_or_module, module_code, year) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('institution_type', institution_type);
-    formData.append('institution_name', institution_name);
-    formData.append('subject_or_module', subject_or_module);
-    formData.append('module_code', module_code);
-    formData.append('year', year);
-    
-    const response = await api.post('/admin/upload-past-paper', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+  deleteLibraryBook: async (bookId) => {
+    const response = await api.delete(`/admin/library/${bookId}`);
     return response.data;
   }
 };
