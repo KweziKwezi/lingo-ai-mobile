@@ -12,6 +12,11 @@ export default function AdminDashboard() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [books, setBooks] = useState([]);
+  const [uploadMode, setUploadMode] = useState('textbook'); // 'textbook' or 'past_paper'
+const [institutionType, setInstitutionType] = useState('High School');
+const [institutionName, setInstitutionName] = useState('');
+const [moduleCode, setModuleCode] = useState('');
+const [year, setYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
     loadLibrary();
@@ -26,12 +31,44 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleUpload = async (e) => {
+   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!file || !title || !grade || !subject) {
-      setError('Please fill in all fields and select a file.');
+    if (!file || !title) {
+      setError('Please fill in required fields and select a file.');
       return;
     }
+
+    setLoading(true);
+    setMessage('');
+    setError('');
+
+    try {
+      if (uploadMode === 'past_paper') {
+        await pastPaperService.uploadPastPaper(file, institutionType, institutionName, title, moduleCode, year);
+        setMessage('Past paper successfully added to the Hub!');
+      } else {
+        await adminService.uploadLibraryBook(file, title, grade, subject, type);
+        setMessage('Book successfully added to the Public Library!');
+      }
+      
+      // Reset form
+      setTitle('');
+      setGrade('');
+      setSubject('');
+      setInstitutionName('');
+      setModuleCode('');
+      setFile(null);
+      
+      // Refresh lists
+      loadLibrary();
+      loadPapers(); // Add this to refresh past papers list if you keep them on the same dashboard
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Upload failed. Are you logged in as the admin?';
+      setError(detail);
+    } finally {
+      setLoading(false);
+    }
+  };
 
     setLoading(true);
     setMessage('');
@@ -69,82 +106,91 @@ export default function AdminDashboard() {
       <div style={{ background: '#f9fafb', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', marginBottom: '2rem' }}>
         <h3 style={{ marginTop: 0, color: '#1f2937' }}>Upload to Public Library</h3>
         
-        <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Mode Toggle */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <button type="button" onClick={() => setUploadMode('textbook')} style={{ flex: 1, padding: '0.5rem', borderRadius: '0.5rem', border: 'none', background: uploadMode === 'textbook' ? '#0d9488' : '#e5e7eb', color: uploadMode === 'textbook' ? 'white' : '#6b7280', fontWeight: 600, cursor: 'pointer' }}>
+              📚 Public Textbook
+            </button>
+            <button type="button" onClick={() => setUploadMode('past_paper')} style={{ flex: 1, padding: '0.5rem', borderRadius: '0.5rem', border: 'none', background: uploadMode === 'past_paper' ? '#8b5cf6' : '#e5e7eb', color: uploadMode === 'past_paper' ? 'white' : '#6b7280', fontWeight: 600, cursor: 'pointer' }}>
+              📝 Past Exam Paper
+            </button>
+          </div>
+
           <div>
-            <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Book Title</label>
+            <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
+              {uploadMode === 'textbook' ? 'Book Title' : 'Subject / Module Name'}
+            </label>
             <input 
               type="text" 
               value={title} 
               onChange={(e) => setTitle(e.target.value)} 
-              placeholder="e.g., Grade 12 Life Sciences" 
+              placeholder={uploadMode === 'textbook' ? "e.g., Grade 12 Life Sciences" : "e.g., Mathematics or Calculus I"} 
               style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', boxSizing: 'border-box' }}
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Grade</label>
-              <select 
-                value={grade} 
-                onChange={(e) => setGrade(e.target.value)} 
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', boxSizing: 'border-box' }}
-              >
-                <option value="">Select Grade</option>
-                <option value="8">Grade 8</option>
-                <option value="9">Grade 9</option>
-                <option value="10">Grade 10</option>
-                <option value="11">Grade 11</option>
-                <option value="12">Grade 12</option>
-                <option value="University">University</option>
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Subject</label>
-              <input 
-                type="text" 
-                value={subject} 
-                onChange={(e) => setSubject(e.target.value)} 
-                placeholder="e.g., Mathematics" 
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', boxSizing: 'border-box' }}
-              />
-            </div>
-          </div>
+          {uploadMode === 'past_paper' && (
+            <>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Level</label>
+                  <select value={institutionType} onChange={(e) => setInstitutionType(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', boxSizing: 'border-box' }}>
+                    <option value="High School">High School</option>
+                    <option value="University">University</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Year</label>
+                  <input type="number" value={year} onChange={(e) => setYear(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
+                  {institutionType === 'High School' ? 'School / Board Name' : 'University Name'}
+                </label>
+                <input type="text" value={institutionName} onChange={(e) => setInstitutionName(e.target.value)} placeholder={institutionType === 'High School' ? "e.g., DBE / IEB" : "e.g., University of Cape Town"} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', boxSizing: 'border-box' }} />
+              </div>
+              {institutionType === 'University' && (
+                <div>
+                  <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Module Code (Optional)</label>
+                  <input type="text" value={moduleCode} onChange={(e) => setModuleCode(e.target.value)} placeholder="e.g., MAT101" style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', boxSizing: 'border-box' }} />
+                </div>
+              )}
+            </>
+          )}
 
-          <div>
-            <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Document Type</label>
-            <select 
-              value={type} 
-              onChange={(e) => setType(e.target.value)} 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', boxSizing: 'border-box' }}
-            >
-              <option value="textbook">Textbook</option>
-              <option value="slides">Slides</option>
-              <option value="notes">Notes</option>
-            </select>
-          </div>
+          {uploadMode === 'textbook' && (
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Grade</label>
+                <select value={grade} onChange={(e) => setGrade(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', boxSizing: 'border-box' }}>
+                  <option value="">Select Grade</option>
+                  <option value="8">Grade 8</option>
+                  <option value="9">Grade 9</option>
+                  <option value="10">Grade 10</option>
+                  <option value="11">Grade 11</option>
+                  <option value="12">Grade 12</option>
+                  <option value="University">University</option>
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Subject</label>
+                <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g., Mathematics" style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+          )}
 
           <div>
             <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>PDF or PPTX File</label>
-            <input 
-              type="file" 
-              accept=".pdf,.pptx"
-              onChange={(e) => setFile(e.target.files[0])}
-              style={{ width: '100%', padding: '0.5rem', boxSizing: 'border-box' }}
-            />
+            <input type="file" accept=".pdf,.pptx" onChange={(e) => setFile(e.target.files[0])} style={{ width: '100%', padding: '0.5rem', boxSizing: 'border-box' }} />
           </div>
 
           {message && <div style={{ color: '#16a34a', background: '#f0fdf4', padding: '0.75rem', borderRadius: '0.5rem' }}>{message}</div>}
           {error && <div style={{ color: '#dc2626', background: '#fef2f2', padding: '0.75rem', borderRadius: '0.5rem' }}>{error}</div>}
 
-          <button 
-            type="submit" 
-            disabled={loading}
-            style={{ 
-              background: '#0d9488', color: 'white', border: 'none', borderRadius: '0.5rem', 
-              padding: '1rem', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 
-            }}
-          >
-            {loading ? 'Ingesting & Uploading...' : 'Publish to Library'}
+          <button type="submit" disabled={loading} style={{ background: uploadMode === 'past_paper' ? '#8b5cf6' : '#0d9488', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '1rem', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+            {loading ? 'Ingesting & Uploading...' : (uploadMode === 'past_paper' ? 'Publish to Past Papers Hub' : 'Publish to Library')}
           </button>
         </form>
       </div>

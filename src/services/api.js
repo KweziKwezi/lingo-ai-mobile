@@ -194,3 +194,33 @@ export const libraryService = {
     return response.data;
   }
 };
+export const pastPaperService = {
+  getPastPapers: async (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.institution_type) params.append('institution_type', filters.institution_type);
+    if (filters.year) params.append('year', filters.year);
+    
+    const response = await api.get(`/past-papers?${params.toString()}`);
+    return response.data;
+  },
+  
+  downloadPastPaper: (bookId) => {
+    // Returns the direct download URL
+    return `${API_URL}/past-papers/${bookId}/download`;
+  },
+
+  uploadPastPaper: async (file, institution_type, institution_name, subject_or_module, module_code, year) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('institution_type', institution_type);
+    formData.append('institution_name', institution_name);
+    formData.append('subject_or_module', subject_or_module);
+    formData.append('module_code', module_code);
+    formData.append('year', year);
+    
+    const response = await api.post('/admin/upload-past-paper', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+};
