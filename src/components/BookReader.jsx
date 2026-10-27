@@ -3,22 +3,20 @@ import { libraryService } from '../services/api';
 
 export default function BookReader({ book, onBack }) {
   const [pageNum, setPageNum] = useState(1);
-  const [numPages, setNumPages] = useState(null);
   const [pdfUrl, setPdfUrl] = useState('');
-    const [isPdfLoading, setIsPdfLoading] = useState(true);
   
-  // Translation states
   const [targetLang, setTargetLang] = useState('isiZulu');
   const [translatedText, setTranslatedText] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
   const [showTranslation, setShowTranslation] = useState(false);
+  
+  const [isPdfLoading, setIsPdfLoading] = useState(true);
 
-    useEffect(() => {
+  useEffect(() => {
     setPdfUrl(libraryService.getPdfUrl(book.id));
-    setIsPdfLoading(true); // Reset spinner when opening a new book
+    setIsPdfLoading(true); 
   }, [book.id]);
 
-  // Clear translation when changing pages
   useEffect(() => {
     setTranslatedText('');
     setShowTranslation(false);
@@ -27,16 +25,14 @@ export default function BookReader({ book, onBack }) {
   const handleTranslate = async () => {
     setIsTranslating(true);
     try {
-      // 1. Fetch the raw text for this specific page
       const pageData = await libraryService.getPageText(book.id, pageNum);
       
       if (!pageData.text) {
-        setTranslatedText("No text could be extracted from this page (it might be an image).");
+        setTranslatedText("No text could be extracted from this page (it might be an image or blank).");
         setShowTranslation(true);
         return;
       }
 
-      // 2. Translate it
       const res = await libraryService.translateText(pageData.text, targetLang);
       setTranslatedText(res.translated_text);
       setShowTranslation(true);
@@ -47,57 +43,144 @@ export default function BookReader({ book, onBack }) {
     }
   };
 
-  // SECURITY: Prevent right-click on the whole reader
   const handleContextMenu = (e) => e.preventDefault();
 
   return (
-    <div onContextMenu={handleContextMenu} style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)' }}>
+    <div className="fade-in" onContextMenu={handleContextMenu} style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      height: 'calc(100vh - 180px)',
+      background: 'white',
+      borderRadius: 'var(--radius-lg)',
+      overflow: 'hidden',
+      boxShadow: 'var(--shadow-lg)'
+    }}>
       
       {/* Header */}
-      <div style={{ padding: '0.75rem 1rem', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', color: '#0d9488', cursor: 'pointer', fontWeight: 600 }}>
-          ← Library
+      <div style={{ 
+        padding: '1rem 1.25rem', 
+        background: 'linear-gradient(135deg, rgba(15, 118, 110, 0.05), rgba(99, 102, 241, 0.05))',
+        borderBottom: '1px solid var(--border-light)',
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center' 
+      }}>
+        <button onClick={onBack} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
+          ← Back to Library
         </button>
-        <div style={{ fontWeight: 600, color: '#1f2937' }}>{book.title}</div>
-        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Page {pageNum} {numPages ? `of ${numPages}` : ''}</div>
+        <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '1.05rem' }}>{book.title}</div>
+        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 600 }}>Page {pageNum}</div>
       </div>
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         
-                {/* PDF Viewer (Left Side) */}
-        <div style={{ flex: showTranslation ? 1 : 1, height: '100%', background: '#525659', position: 'relative' }}>
+        {/* PDF Viewer */}
+        <div style={{ 
+          flex: showTranslation ? 1 : 1, 
+          height: '100%', 
+          background: '#525659',
+          position: 'relative'
+        }}>
           
-          {/* Loading Spinner Overlay */}
           {isPdfLoading && (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#525659', color: 'white', zIndex: 10 }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}></div>
+            <div style={{ 
+              position: 'absolute', 
+              inset: 0, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              background: '#525659', 
+              color: 'white', 
+              zIndex: 10 
+            }}>
+              <div style={{
+                width: '50px',
+                height: '50px',
+                border: '4px solid rgba(255,255,255,0.2)',
+                borderTop: '4px solid var(--primary)',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                marginBottom: '1rem'
+              }} />
               <p style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Loading PDF...</p>
               <p style={{ fontSize: '0.875rem', color: '#9ca3af', marginTop: '0.5rem' }}>This may take a moment for large files</p>
             </div>
           )}
 
           <iframe 
-            // CRITICAL FIX: Removed key={pageNum} to prevent full iframe reloads on page turns!
             src={`${pdfUrl}#page=${pageNum}&toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
             style={{ width: '100%', height: '100%', border: 'none' }}
             title="Book Reader"
-            onLoad={() => setIsPdfLoading(false)} // Hides spinner when PDF finishes loading
+            onLoad={() => setIsPdfLoading(false)} 
           />
         </div>
 
-        {/* Translation Panel (Right Side - Only shows when active) */}
+        {/* Translation Panel */}
         {showTranslation && (
-          <div style={{ 
-            width: '350px', borderLeft: '1px solid #e5e7eb', background: '#f0fdf4', 
-            display: 'flex', flexDirection: 'column', overflow: 'hidden'
+          <div className="glass-card fade-in" style={{ 
+            width: '400px', 
+            marginLeft: '1rem',
+            padding: 0,
+            display: 'flex', 
+            flexDirection: 'column',
+            overflow: 'hidden',
+            border: '2px solid var(--primary-light)'
           }}>
-            <div style={{ padding: '1rem', borderBottom: '1px solid #bbf7d0', fontWeight: 600, color: '#166534' }}>
-              Translation ({targetLang}) - Page {pageNum}
+            <div style={{ 
+              padding: '1.25rem', 
+              background: 'linear-gradient(135deg, var(--primary), var(--primary-light))',
+              color: 'white',
+              fontWeight: 700,
+              fontSize: '1.05rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>🌍 Translation ({targetLang})</span>
+              <button 
+                onClick={() => setShowTranslation(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  color: 'white',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  fontSize: '1.2rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ✕
+              </button>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', lineHeight: 1.6, color: '#1f2937', whiteSpace: 'pre-wrap' }}>
+            <div style={{ 
+              flex: 1, 
+              overflowY: 'auto', 
+              padding: '1.25rem', 
+              lineHeight: 1.8, 
+              color: 'var(--text-main)',
+              fontSize: '0.95rem',
+              background: 'white',
+              whiteSpace: 'pre-wrap'
+            }}>
               {isTranslating ? (
-                <p style={{ textAlign: 'center', color: '#16a34a' }}>🤖 Translating page...</p>
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    border: '3px solid var(--border-light)',
+                    borderTop: '3px solid var(--primary)',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    margin: '0 auto 1rem'
+                  }} />
+                  <p>Translating page...</p>
+                </div>
               ) : (
                 translatedText
               )}
@@ -107,14 +190,24 @@ export default function BookReader({ book, onBack }) {
       </div>
 
       {/* Bottom Controls */}
-      <div style={{ padding: '0.75rem 1rem', background: '#f9fafb', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+      <div style={{ 
+        padding: '1rem 1.25rem', 
+        background: 'linear-gradient(135deg, rgba(248,250,252,0.95), rgba(255,255,255,0.95))',
+        borderTop: '1px solid var(--border-light)',
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        gap: '1rem',
+        flexWrap: 'wrap'
+      }}>
         
         {/* Page Navigation */}
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <button 
             onClick={() => setPageNum(Math.max(1, pageNum - 1))} 
             disabled={pageNum <= 1}
-            style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid #d1d5db', background: 'white', cursor: pageNum <= 1 ? 'not-allowed' : 'pointer' }}
+            className="btn-secondary"
+            style={{ padding: '0.625rem 1rem' }}
           >
             ← Prev
           </button>
@@ -122,22 +215,25 @@ export default function BookReader({ book, onBack }) {
             type="number" 
             value={pageNum} 
             onChange={(e) => setPageNum(Math.max(1, parseInt(e.target.value) || 1))}
-            style={{ width: '60px', padding: '0.5rem', textAlign: 'center', borderRadius: '0.375rem', border: '1px solid #d1d5db' }}
+            className="input-modern"
+            style={{ width: '80px', textAlign: 'center', fontWeight: 700 }}
           />
           <button 
             onClick={() => setPageNum(pageNum + 1)} 
-            style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid #d1d5db', background: 'white', cursor: 'pointer' }}
+            className="btn-secondary"
+            style={{ padding: '0.625rem 1rem' }}
           >
             Next →
           </button>
         </div>
 
         {/* Translation Controls */}
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <select 
             value={targetLang} 
             onChange={(e) => { setTargetLang(e.target.value); setShowTranslation(false); }}
-            style={{ padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #d1d5db' }}
+            className="input-modern"
+            style={{ width: '140px' }}
           >
             <option value="isiZulu">isiZulu</option>
             <option value="isiXhosa">isiXhosa</option>
@@ -149,20 +245,14 @@ export default function BookReader({ book, onBack }) {
           <button 
             onClick={handleTranslate} 
             disabled={isTranslating}
-            style={{ 
-              padding: '0.5rem 1rem', borderRadius: '0.375rem', border: 'none', 
-              background: isTranslating ? '#9ca3af' : '#16a34a', color: 'white', 
-              cursor: isTranslating ? 'not-allowed' : 'pointer', fontWeight: 600 
+            className="btn-primary"
+            style={{
+              padding: '0.625rem 1.25rem',
+              background: isTranslating ? 'var(--text-muted)' : 'linear-gradient(135deg, var(--primary), var(--primary-light))'
             }}
           >
-            {isTranslating ? 'Translating...' : 'Translate Page'}
+            {isTranslating ? ' Translating...' : ' Translate Page'}
           </button>
-          
-          {showTranslation && (
-            <button onClick={() => setShowTranslation(false)} style={{ padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #16a34a', background: 'white', color: '#16a34a', cursor: 'pointer' }}>
-              ✕
-            </button>
-          )}
         </div>
       </div>
     </div>
