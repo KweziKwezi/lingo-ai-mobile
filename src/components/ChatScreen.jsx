@@ -183,9 +183,36 @@ export default function ChatScreen() {
               {selectedBook && <p style={{ marginTop: '1rem', color: '#0d9488', fontWeight: 600 }}> Currently using: {selectedBook.title}</p>}
             </div>
           )}
-          {messages.map((msg, idx) => (
-            <div key={idx} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: '1rem' }}>
-              <div style={{ maxWidth: '75%', padding: '0.875rem 1.25rem', borderRadius: '1rem', background: msg.role === 'user' ? '#0d9488' : '#f3f4f6', color: msg.role === 'user' ? 'white' : '#1f2937', whiteSpace: 'pre-wrap', lineHeight: 1.5, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                    {messages.map((msg, idx) => (
+            <div key={idx} style={{ 
+              display: 'flex', 
+              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', 
+              marginBottom: '1.25rem',
+              animation: 'fadeIn 0.3s ease-out'
+            }}>
+              {/* AI Avatar */}
+              {msg.role === 'assistant' && (
+                <div style={{ 
+                  width: '36px', height: '36px', borderRadius: '50%', 
+                  background: 'linear-gradient(135deg, #0d9488, #8b5cf6)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  color: 'white', fontWeight: 700, fontSize: '0.9rem', marginRight: '0.75rem', flexShrink: 0,
+                  boxShadow: '0 4px 10px rgba(13, 148, 136, 0.3)'
+                }}>AI</div>
+              )}
+              
+              <div style={{ 
+                maxWidth: '75%', 
+                padding: '1rem 1.25rem', 
+                borderRadius: msg.role === 'user' ? '1.25rem 1.25rem 0.25rem 1.25rem' : '1.25rem 1.25rem 1.25rem 0.25rem', 
+                background: msg.role === 'user' ? 'linear-gradient(135deg, #0d9488, #0f766e)' : 'white', 
+                color: msg.role === 'user' ? 'white' : '#1f2937', 
+                whiteSpace: 'pre-wrap', 
+                lineHeight: 1.6, 
+                fontSize: '0.95rem',
+                boxShadow: msg.role === 'user' ? '0 4px 12px rgba(13, 148, 136, 0.2)' : '0 2px 8px rgba(0,0,0,0.04)',
+                border: msg.role === 'assistant' ? '1px solid #f1f5f9' : 'none'
+              }}>
                 {msg.content}
               </div>
             </div>
@@ -194,9 +221,37 @@ export default function ChatScreen() {
           <div ref={messagesEndRef} />
         </div>
 
-        <div style={{ padding: '1rem', borderTop: '1px solid #e5e7eb', background: 'white', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend()} placeholder="Ask your tutor a question..." disabled={loading} style={{ flex: 1, minWidth: '100px', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', boxSizing: 'border-box', outline: 'none' }} />
-          <button onClick={handleSend} disabled={loading || !input.trim()} style={{ background: '#0d9488', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.75rem 1.5rem', cursor: 'pointer', fontWeight: 600, width: 'auto', flexShrink: 0 }}>Send</button>
+                <div style={{ padding: '1rem', borderTop: '1px solid #f1f5f9', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <input 
+            type="text" 
+            value={input} 
+            onChange={(e) => setInput(e.target.value)} 
+            onKeyPress={(e) => e.key === 'Enter' && handleSend()} 
+            placeholder="Ask your tutor..." 
+            disabled={loading} 
+            style={{ 
+              flex: 1, padding: '0.875rem 1.25rem', borderRadius: '999px', 
+              border: '1px solid #e2e8f0', background: '#f8fafc',
+              fontFamily: 'Outfit, sans-serif', fontSize: '0.95rem', outline: 'none',
+              transition: 'all 0.2s'
+            }} 
+          />
+          <button 
+            onClick={handleSend} 
+            disabled={loading || !input.trim()} 
+            style={{ 
+              background: 'linear-gradient(135deg, #0d9488, #8b5cf6)', 
+              color: 'white', border: 'none', borderRadius: '50%', 
+              width: '48px', height: '48px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', boxShadow: '0 4px 12px rgba(13, 148, 136, 0.3)',
+              transition: 'transform 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" /></svg>
+          </button>
         </div>
       </div>
     </div>
