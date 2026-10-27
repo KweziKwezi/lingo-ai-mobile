@@ -340,7 +340,7 @@ export default function ChatScreen() {
               
                               <div style={{ 
                 maxWidth: '80%', 
-                padding: '1.25rem 1.5rem',
+                padding: '1.25rem 2rem',  // Increased horizontal padding from 1.5rem to 2rem
                 borderRadius: msg.role === 'user' ? '1.5rem 1.5rem 0.5rem 1.5rem' : '1.5rem 1.5rem 1.5rem 0.5rem', 
                 background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--primary-light))' : 'white', 
                 color: msg.role === 'user' ? 'white' : 'var(--text-main)', 
@@ -350,8 +350,7 @@ export default function ChatScreen() {
                 lineHeight: 1.7, 
                 fontSize: '1rem',
                 boxShadow: msg.role === 'user' ? '0 4px 12px rgba(15, 118, 110, 0.25)' : '0 2px 8px rgba(0,0,0,0.08)',
-                border: msg.role === 'assistant' ? '1px solid var(--border-light)' : 'none',
-                minHeight: '3.5rem'
+                border: msg.role === 'assistant' ? '1px solid var(--border-light)' : 'none'
               }}>
                 {msg.content}
               </div>
