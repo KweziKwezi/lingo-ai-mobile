@@ -5,6 +5,7 @@ export default function BookReader({ book, onBack }) {
   const [pageNum, setPageNum] = useState(1);
   const [numPages, setNumPages] = useState(null);
   const [pdfUrl, setPdfUrl] = useState('');
+    const [isPdfLoading, setIsPdfLoading] = useState(true);
   
   // Translation states
   const [targetLang, setTargetLang] = useState('isiZulu');
@@ -12,9 +13,9 @@ export default function BookReader({ book, onBack }) {
   const [isTranslating, setIsTranslating] = useState(false);
   const [showTranslation, setShowTranslation] = useState(false);
 
-  useEffect(() => {
-    // Set the secure PDF URL
+    useEffect(() => {
     setPdfUrl(libraryService.getPdfUrl(book.id));
+    setIsPdfLoading(true); // Reset spinner when opening a new book
   }, [book.id]);
 
   // Clear translation when changing pages
@@ -64,13 +65,24 @@ export default function BookReader({ book, onBack }) {
       {/* Main Content Area */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         
-        {/* PDF Viewer (Left Side) */}
-        <div style={{ flex: showTranslation ? 1 : 1, height: '100%', background: '#525659' }}>
+                {/* PDF Viewer (Left Side) */}
+        <div style={{ flex: showTranslation ? 1 : 1, height: '100%', background: '#525659', position: 'relative' }}>
+          
+          {/* Loading Spinner Overlay */}
+          {isPdfLoading && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#525659', color: 'white', zIndex: 10 }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}></div>
+              <p style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Loading PDF...</p>
+              <p style={{ fontSize: '0.875rem', color: '#9ca3af', marginTop: '0.5rem' }}>This may take a moment for large files</p>
+            </div>
+          )}
+
           <iframe 
-            key={pageNum} 
+            // CRITICAL FIX: Removed key={pageNum} to prevent full iframe reloads on page turns!
             src={`${pdfUrl}#page=${pageNum}&toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
             style={{ width: '100%', height: '100%', border: 'none' }}
             title="Book Reader"
+            onLoad={() => setIsPdfLoading(false)} // Hides spinner when PDF finishes loading
           />
         </div>
 
