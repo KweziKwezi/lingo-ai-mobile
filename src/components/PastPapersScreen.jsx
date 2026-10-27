@@ -7,7 +7,7 @@ export default function PastPapersScreen() {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('All');
   const [filterYear, setFilterYear] = useState('All');
-  const [searchQuery, setSearchQuery] = useState(''); // New search state
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedPaper, setSelectedPaper] = useState(null);
   const [uploadingToChat, setUploadingToChat] = useState(null);
 
@@ -19,10 +19,8 @@ export default function PastPapersScreen() {
       const filters = {};
       if (filterType !== 'All') filters.institution_type = filterType;
       if (filterYear !== 'All') filters.year = parseInt(filterYear);
-      const data = await pastPaperService.getPastPapers(filters);
-      setPapers(data);
-    } catch (err) { console.error('Failed to load past papers:', err); }
-    finally { setLoading(false); }
+      const data = await pastPaperService.getPastPapers(filters); setPapers(data);
+    } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
   const handleAskAI = async (paper) => {
@@ -32,66 +30,55 @@ export default function PastPapersScreen() {
       const blob = await response.blob();
       const file = new File([blob], paper.filename, { type: 'application/pdf' });
       await bookService.uploadFile(file, `Past Paper: ${paper.subject}`, paper.grade, paper.subject, 'past_paper');
-      alert(`"${paper.subject}" uploaded to your AI Tutor! Go to the AI Tutor tab to ask questions.`);
-    } catch (err) { alert('Failed to upload to AI Tutor.'); }
-    finally { setUploadingToChat(null); }
+      alert(`"${paper.subject}" uploaded to your AI Tutor!`);
+    } catch (err) { alert('Failed to upload.'); } finally { setUploadingToChat(null); }
   };
 
   if (selectedPaper) return <BookReader book={selectedPaper} onBack={() => setSelectedPaper(null)} />;
 
-  // Advanced Filter Logic
   const years = ['All', ...new Set(papers.map(p => p.year).filter(Boolean))].sort((a, b) => b - a);
-  const filteredPapers = papers.filter(paper => {
-    const matchesSearch = 
-      paper.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (paper.institution_name && paper.institution_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (paper.module_code && paper.module_code.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesSearch;
-  });
+  const filteredPapers = papers.filter(paper => 
+    paper.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (paper.institution_name && paper.institution_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (paper.module_code && paper.module_code.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
-    <div style={{ padding: '1.5rem', maxWidth: '900px', margin: '0 auto' }}>
-      <h2 style={{ color: '#0d9488', marginBottom: '1.5rem' }}>📚 Past Exam Papers Hub</h2>
+    <div className="fade-in">
+      <div style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-main)' }}>Past Papers Hub</h2>
+        <p style={{ color: 'var(--text-muted)' }}>Practice with past exams and get AI help.</p>
+      </div>
       
-      {/* Search & Filters */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <input 
-          type="text" 
-          placeholder="Search subject, university, or module code..." 
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={{ flex: 2, padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', minWidth: '200px' }}
-        />
-        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', minWidth: '150px' }}>
-          <option value="All">All Levels</option>
-          <option value="High School">High School</option>
-          <option value="University">University</option>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+        <input type="text" placeholder="Search subject, university, or module..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="input-modern" style={{ flex: 2, minWidth: '200px' }} />
+        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="input-modern" style={{ flex: 1, minWidth: '150px' }}>
+          <option value="All">All Levels</option><option value="High School">High School</option><option value="University">University</option>
         </select>
-        <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', minWidth: '120px' }}>
+        <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="input-modern" style={{ flex: 1, minWidth: '120px' }}>
           {years.map(year => <option key={year} value={year}>{year === 'All' ? 'All Years' : year}</option>)}
         </select>
       </div>
 
-      {loading ? <p style={{ textAlign: 'center', color: '#6b7280' }}>Loading past papers...</p> : filteredPapers.length === 0 ? (
-        <p style={{ textAlign: 'center', color: '#6b7280' }}>No past papers found for these filters.</p>
+      {loading ? <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>Loading...</p> : filteredPapers.length === 0 ? (
+        <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>No past papers found.</p>
       ) : (
         <div style={{ display: 'grid', gap: '1rem' }}>
           {filteredPapers.map((paper) => (
-            <div key={paper.id} style={{ background: 'white', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div key={paper.id} className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#1f2937' }}>{paper.subject}</div>
-                  <div style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                    {paper.institution_name} • {paper.institution_type} • {paper.year}
-                    {paper.module_code && ` • Code: ${paper.module_code}`}
+                  <div style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--text-main)' }}>{paper.subject}</div>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    {paper.institution_name} • {paper.institution_type} {paper.module_code && `• ${paper.module_code}`}
                   </div>
                 </div>
-                <span style={{ background: paper.institution_type === 'University' ? '#ede9fe' : '#f0fdf4', color: paper.institution_type === 'University' ? '#7c3aed' : '#16a34a', padding: '0.25rem 0.75rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>{paper.year}</span>
+                <span className={`badge ${paper.institution_type === 'University' ? 'badge-purple' : 'badge-teal'}`}>{paper.year}</span>
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <button onClick={() => setSelectedPaper(paper)} style={{ flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #0d9488', background: 'white', color: '#0d9488', fontWeight: 600, cursor: 'pointer' }}>👁️ View & Translate</button>
-                <a href={pastPaperService.downloadPastPaper(paper.id)} download style={{ flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: 'none', background: '#3b82f6', color: 'white', fontWeight: 600, cursor: 'pointer', textAlign: 'center', textDecoration: 'none' }}>⬇️ Download PDF</a>
-                <button onClick={() => handleAskAI(paper)} disabled={uploadingToChat === paper.id} style={{ flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: 'none', background: uploadingToChat === paper.id ? '#9ca3af' : '#8b5cf6', color: 'white', fontWeight: 600, cursor: uploadingToChat === paper.id ? 'not-allowed' : 'pointer' }}>
+                <button onClick={() => setSelectedPaper(paper)} className="btn-secondary" style={{ flex: 1 }}>👁️ View & Translate</button>
+                <a href={pastPaperService.downloadPastPaper(paper.id)} download className="btn-primary" style={{ flex: 1, textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⬇️ Download</a>
+                <button onClick={() => handleAskAI(paper)} disabled={uploadingToChat === paper.id} className="btn-primary" style={{ flex: 1, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
                   {uploadingToChat === paper.id ? 'Uploading...' : '🤖 Ask AI Tutor'}
                 </button>
               </div>
