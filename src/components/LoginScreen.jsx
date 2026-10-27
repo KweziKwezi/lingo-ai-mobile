@@ -3,9 +3,9 @@ import { authService } from '../services/api';
 
 export default function LoginScreen({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -13,36 +13,146 @@ export default function LoginScreen({ onLogin }) {
     e.preventDefault();
     setError('');
     setLoading(true);
+
     try {
-      if (isLogin) await authService.login(email, password);
-      else { await authService.register(name, email, password); await authService.login(email, password); }
+      if (isLogin) {
+        await authService.login(email, password);
+      } else {
+        await authService.register(name, email, password);
+      }
       onLogin();
-    } catch (err) { setError(err.response?.data?.detail || 'An error occurred.'); }
-    finally { setLoading(false); }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="auth-wrapper">
-      <div className="auth-card">
-        <div className="auth-icon">
-          <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'linear-gradient(135deg, #f0fdfa 0%, #eef2ff 100%)',
+      padding: '1rem'
+    }}>
+      <div className="glass-card fade-in" style={{
+        width: '100%',
+        maxWidth: '420px',
+        padding: '2.5rem',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{
+            fontSize: '3rem',
+            marginBottom: '0.5rem'
+          }}>📚</div>
+          <h1 style={{
+            fontSize: '2rem',
+            fontWeight: 800,
+            background: 'linear-gradient(135deg, var(--primary), var(--accent))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            marginBottom: '0.5rem'
+          }}>Lingo AI</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+            {isLogin ? 'Welcome back! Continue learning' : 'Create your account'}
+          </p>
         </div>
-        <h1 className="auth-title">{isLogin ? 'Welcome Back!' : 'Create Account'}</h1>
-        <p className="auth-subtitle">{isLogin ? 'Login to continue learning' : 'Join Lingo AI today'}</p>
 
-        <form onSubmit={handleSubmit}>
-          {!isLogin && <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} className="input" required />}
-          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="input" required />
-          <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="input" required minLength={6} />
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {!isLogin && (
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-main)', fontSize: '0.875rem' }}>Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="input-modern"
+                placeholder="Your full name"
+                required={!isLogin}
+              />
+            </div>
+          )}
           
-          {error && <div className="error-msg">{error}</div>}
-          
-          <button type="submit" disabled={loading} className="btn">{loading ? 'Please wait...' : isLogin ? 'Login' : 'Register'}</button>
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-main)', fontSize: '0.875rem' }}>Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input-modern"
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-main)', fontSize: '0.875rem' }}>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input-modern"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+
+          {error && (
+            <div style={{
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#dc2626',
+              padding: '0.875rem',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.875rem'
+            }}>
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary"
+            style={{
+              width: '100%',
+              marginTop: '0.5rem',
+              padding: '1rem',
+              fontSize: '1rem',
+              fontWeight: 700
+            }}
+          >
+            {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
+          </button>
         </form>
-        
-        <button onClick={() => setIsLogin(!isLogin)} className="btn-link">
-          {isLogin ? 'Need an account? Register' : 'Have an account? Login'}
-        </button>
+
+        <div style={{
+          textAlign: 'center',
+          marginTop: '1.5rem',
+          paddingTop: '1.5rem',
+          borderTop: '1px solid var(--border-light)'
+        }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            {isLogin ? "Don't have an account? " : "Already have an account? "}
+            <button
+              onClick={() => { setIsLogin(!isLogin); setError(''); }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--primary)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                textDecoration: 'underline'
+              }}
+            >
+              {isLogin ? 'Sign Up' : 'Sign In'}
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );
