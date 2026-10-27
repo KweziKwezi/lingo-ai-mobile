@@ -338,23 +338,20 @@ export default function ChatScreen() {
                 </div>
               )}
               
-                            <div style={{ 
+                              <div style={{ 
                 maxWidth: '80%', 
-                padding: '1rem 1.25rem', 
-                paddingTop: '0.875rem',
-                paddingBottom: '0.875rem',
-                borderRadius: msg.role === 'user' ? '1.25rem 1.25rem 0.375rem 1.25rem' : '1.25rem 1.25rem 1.25rem 0.375rem', 
+                padding: '1.25rem 1.5rem',
+                borderRadius: msg.role === 'user' ? '1.5rem 1.5rem 0.5rem 1.5rem' : '1.5rem 1.5rem 1.5rem 0.5rem', 
                 background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--primary-light))' : 'white', 
                 color: msg.role === 'user' ? 'white' : 'var(--text-main)', 
                 whiteSpace: 'pre-wrap', 
                 wordBreak: 'break-word',
                 overflowWrap: 'break-word',
                 lineHeight: 1.7, 
-                fontSize: '0.975rem',
-                fontWeight: 500,
+                fontSize: '1rem',
                 boxShadow: msg.role === 'user' ? '0 4px 12px rgba(15, 118, 110, 0.25)' : '0 2px 8px rgba(0,0,0,0.08)',
                 border: msg.role === 'assistant' ? '1px solid var(--border-light)' : 'none',
-                minHeight: '3rem'
+                minHeight: '3.5rem'
               }}>
                 {msg.content}
               </div>
