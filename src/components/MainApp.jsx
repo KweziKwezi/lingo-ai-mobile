@@ -5,6 +5,7 @@ import StudyTools from './StudyTools';
 import AdminDashboard from './AdminDashboard';
 import PastPapersScreen from './PastPapersScreen';
 import LibraryScreen from './LibraryScreen';
+import HelpButton from './HelpButton';
 
 export default function MainApp({ onLogout, isAdmin }) {
   const [activeTab, setActiveTab] = useState('chat');
@@ -24,7 +25,7 @@ export default function MainApp({ onLogout, isAdmin }) {
          activeTab === 'upload' ? <UploadScreen /> :
          (activeTab === 'admin' && isAdmin) ? <AdminDashboard /> : null}
       </main>
-
+<HelpButton activeTab={activeTab} />
       <nav className="bottom-nav">
         <button onClick={() => setActiveTab('chat')} className={`nav-btn ${activeTab === 'chat' ? 'active' : ''}`}>
           <svg className="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
