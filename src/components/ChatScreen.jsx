@@ -11,7 +11,6 @@ export default function ChatScreen() {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   
-  // Search states
   const [searchQuery, setSearchQuery] = useState('');
   const [allResources, setAllResources] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -29,20 +28,15 @@ export default function ChatScreen() {
 
   const loadResources = async () => {
     try {
-      // Fetch Public Library, User's Books, and Past Papers
       const [publicBooks, userBooks, pastPapers] = await Promise.all([
         api.get('/library').then(res => res.data.map(b => ({...b, source: 'Public Library'}))),
         bookService.getBooks().then(res => res.map(b => ({...b, source: 'My Documents'}))),
         pastPaperService.getPastPapers().then(res => res.map(p => ({...p, source: 'Past Papers'})))
       ]);
-      
-      // Combine and remove duplicates based on ID
       const combined = [...publicBooks, ...userBooks, ...pastPapers];
       const uniqueResources = combined.filter((v,i,a)=>a.findIndex(t=>(t.id === v.id))===i);
       setAllResources(uniqueResources);
-    } catch (err) {
-      console.error('Failed to load resources:', err);
-    }
+    } catch (err) { console.error('Failed to load resources:', err); }
   };
 
   const loadConversations = async () => {
@@ -56,6 +50,7 @@ export default function ChatScreen() {
     setMessages([]);
     setCurrentConversationId(null);
     setSelectedBook(null);
+    setSearchQuery('');
     setShowSidebar(false);
   };
 
@@ -90,7 +85,23 @@ export default function ChatScreen() {
       const response = await tutorService.askQuestion(
         input, language, selectedBook?.id || null, null, currentConversationId
       );
-      setMessages([...newMessages, { role: 'assistant', content: response.answer }]);
+      
+      let aiText = response.answer;
+      
+      // MAGIC: Check if AI wants to auto-load a book
+      const loadMatch = aiText.match(/\[LOAD_BOOK:(\d+)\]/);
+      if (loadMatch) {
+        const bookId = parseInt(loadMatch[1]);
+        const bookToLoad = allResources.find(b => b.id === bookId);
+        if (bookToLoad) {
+          setSelectedBook(bookToLoad);
+          setSearchQuery(bookToLoad.title); // Update search bar to show it's loaded
+        }
+        // Remove the secret tag from the visible text
+        aiText = aiText.replace(/\[LOAD_BOOK:\d+\]/, '').trim();
+      }
+
+      setMessages([...newMessages, { role: 'assistant', content: aiText }]);
       if (!currentConversationId && response.conversation_id) {
         setCurrentConversationId(response.conversation_id);
         loadConversations();
@@ -102,7 +113,6 @@ export default function ChatScreen() {
     }
   };
 
-  // Filter resources based on search query
   const filteredResources = allResources.filter(res => 
     res.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -110,7 +120,6 @@ export default function ChatScreen() {
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 120px)', position: 'relative', fontFamily: 'sans-serif' }}>
       
-      {/* Sidebar (Chat History) */}
       {showSidebar && (
         <div style={{ width: '280px', background: '#f9fafb', borderRight: '1px solid #e5e7eb', padding: '1rem', overflowY: 'auto', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <button onClick={handleNewChat} style={{ background: '#0d9488', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.75rem', cursor: 'pointer', fontWeight: 600, width: '100%', marginBottom: '1rem' }}>+ New Chat</button>
@@ -123,14 +132,11 @@ export default function ChatScreen() {
         </div>
       )}
 
-      {/* Main Chat Area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         
-        {/* Header with Search & Language */}
         <div style={{ padding: '1rem', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => setShowSidebar(!showSidebar)} style={{ background: '#0d9488', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}>☰ History</button>
 
-          {/* Search Bar */}
           <div style={{ flex: 1, position: 'relative', minWidth: '200px' }}>
             <input 
               type="text" 
@@ -138,7 +144,7 @@ export default function ChatScreen() {
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setShowSearchResults(true); }}
               onFocus={() => setShowSearchResults(true)}
-              onBlur={() => setTimeout(() => setShowSearchResults(false), 200)} // Delay to allow clicks
+              onBlur={() => setTimeout(() => setShowSearchResults(false), 200)}
               style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', boxSizing: 'border-box' }}
             />
             {showSearchResults && searchQuery && (
@@ -160,7 +166,7 @@ export default function ChatScreen() {
               </div>
             )}
             {selectedBook && (
-              <button onClick={() => { setSelectedBook(null); setSearchQuery(''); }} style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => { setSelectedBook(null); setSearchQuery(''); }} style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}></button>
             )}
           </div>
 
@@ -169,12 +175,11 @@ export default function ChatScreen() {
           </select>
         </div>
 
-        {/* Messages */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', background: '#ffffff' }}>
           {messages.length === 0 && (
             <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '3rem' }}>
               <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: '#4b5563' }}>👋 Hello! I'm your AI tutor.</h3>
-              <p>Search for a book above to chat about it, or ask me anything!</p>
+              <p>Ask me anything about your studies, or ask "How do I use this app?"</p>
               {selectedBook && <p style={{ marginTop: '1rem', color: '#0d9488', fontWeight: 600 }}> Currently using: {selectedBook.title}</p>}
             </div>
           )}
@@ -189,7 +194,6 @@ export default function ChatScreen() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
         <div style={{ padding: '1rem', borderTop: '1px solid #e5e7eb', background: 'white', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend()} placeholder="Ask your tutor a question..." disabled={loading} style={{ flex: 1, minWidth: '100px', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', boxSizing: 'border-box', outline: 'none' }} />
           <button onClick={handleSend} disabled={loading || !input.trim()} style={{ background: '#0d9488', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.75rem 1.5rem', cursor: 'pointer', fontWeight: 600, width: 'auto', flexShrink: 0 }}>Send</button>
