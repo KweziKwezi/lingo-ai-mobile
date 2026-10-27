@@ -176,13 +176,7 @@ export default function ChatScreen() {
       )}
 
       {/* Main Chat Area */}
-      <div className="glass-card" style={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column', 
-        overflow: 'hidden',
-        padding: 0
-      }}>
+      <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
         
         {/* Header */}
         <div style={{ 
@@ -287,19 +281,9 @@ export default function ChatScreen() {
         </div>
 
         {/* Messages */}
-        <div style={{ 
-          flex: 1, 
-          overflowY: 'auto', 
-          padding: '1.5rem',
-          background: 'white'
-        }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', background: 'white' }}>
           {messages.length === 0 && (
-            <div style={{ 
-              textAlign: 'center', 
-              color: 'var(--text-muted)', 
-              marginTop: '3rem',
-              padding: '2rem'
-            }}>
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '3rem', padding: '2rem' }}>
               <div style={{ fontSize: '4rem', marginBottom: '1rem' }}></div>
               <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: 700 }}>
                 Hello! I'm your AI tutor.
@@ -323,7 +307,7 @@ export default function ChatScreen() {
             </div>
           )}
           
-                    {messages.map((msg, idx) => (
+          {messages.map((msg, idx) => (
             <div 
               key={idx} 
               style={{ 
@@ -333,7 +317,6 @@ export default function ChatScreen() {
                 animation: 'fadeIn 0.3s ease-out'
               }}
             >
-              {/* AI Avatar */}
               {msg.role === 'assistant' && (
                 <div style={{ 
                   width: '40px', 
@@ -355,43 +338,24 @@ export default function ChatScreen() {
                 </div>
               )}
               
-              {/* The Chat Bubble */}
               <div style={{ 
-                maxWidth: '85%', // Increased from 75% to give it more room
-                padding: '1.1rem 1.5rem', // Increased padding so it doesn't look squashed
-                borderRadius: msg.role === 'user' ? '1.5rem 1.5rem 0.5rem 1.5rem' : '1.5rem 1.5rem 1.5rem 0.5rem', // Softer, less pinched corners
+                maxWidth: '85%', 
+                padding: '1.1rem 1.5rem', 
+                borderRadius: msg.role === 'user' ? '1.5rem 1.5rem 0.5rem 1.5rem' : '1.5rem 1.5rem 1.5rem 0.5rem', 
                 background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--primary-light))' : 'white', 
                 color: msg.role === 'user' ? 'white' : 'var(--text-main)', 
                 whiteSpace: 'pre-wrap', 
-                wordBreak: 'break-word', // Prevents long words/links from breaking the layout
-                overflowWrap: 'break-word', 
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
                 lineHeight: 1.6, 
-                fontSize: '1rem', // Slightly larger for better readability
+                fontSize: '1rem',
                 boxShadow: msg.role === 'user' ? '0 4px 12px rgba(15, 118, 110, 0.25)' : '0 2px 8px rgba(0,0,0,0.08)',
                 border: msg.role === 'assistant' ? '1px solid var(--border-light)' : 'none'
               }}>
                 {msg.content}
               </div>
 
-              {/* Invisible spacer for user messages to balance the layout with the AI avatar */}
               {msg.role === 'user' && <div style={{ width: '40px', flexShrink: 0 }} />}
-            </div>
-          ))}
-              
-              <div style={{ 
-                maxWidth: '75%', 
-                padding: '1rem 1.25rem', 
-                borderRadius: msg.role === 'user' ? '1.25rem 1.25rem 0.25rem 1.25rem' : '1.25rem 1.25rem 1.25rem 0.25rem', 
-                background: msg.role === 'user' ? 'linear-gradient(135deg, var(--primary), var(--primary-light))' : 'white', 
-                color: msg.role === 'user' ? 'white' : 'var(--text-main)', 
-                whiteSpace: 'pre-wrap', 
-                lineHeight: 1.6, 
-                fontSize: '0.95rem',
-                boxShadow: msg.role === 'user' ? '0 4px 12px rgba(15, 118, 110, 0.25)' : '0 2px 8px rgba(0,0,0,0.08)',
-                border: msg.role === 'assistant' ? '1px solid var(--border-light)' : 'none'
-              }}>
-                {msg.content}
-              </div>
             </div>
           ))}
           
