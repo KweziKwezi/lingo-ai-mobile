@@ -386,44 +386,45 @@ export default function AdminDashboard() {
           <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>No past papers published yet.</p>
         ) : (
           <div style={{ display: 'grid', gap: '1rem' }}>
-            {papers.map((paper) => (
-              <div key={paper.id} className="glass-card" style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                padding: '1rem'
-              }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                    {paper.subject} ({paper.year})
-                  </div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                    {paper.institution_name} • {paper.institution_type} {paper.module_code && `• ${paper.module_code}`}
-                  </div>
+                     {papers.map((paper) => (
+            <div key={paper.id} className="glass-card" style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '1rem'
+            }}>
+              <div>
+                <div style={{ fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                  {paper.subject} ({paper.year})
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {new Date(paper.uploaded_at).toLocaleDateString()}
-                  </div>
-                  <button 
-                    onClick={() => handleDelete(paper.id, paper.subject)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#dc2626',
-                      cursor: 'pointer',
-                      fontSize: '1.3rem',
-                      padding: '0.375rem',
-                      transition: 'transform 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                  >
-                    ️
-                  </button>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                  {paper.institution_name} • {paper.institution_type} {paper.module_code && `• ${paper.module_code}`}
                 </div>
               </div>
-            ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {new Date(paper.uploaded_at).toLocaleDateString()}
+                </div>
+                <button 
+                  onClick={() => handleDelete(paper.id, paper.subject)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#dc2626',
+                    cursor: 'pointer',
+                    fontSize: '1.3rem',
+                    padding: '0.375rem',
+                    transition: 'transform 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  title="Delete Past Paper"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+          ))} 
           </div>
         )}
       </div>
