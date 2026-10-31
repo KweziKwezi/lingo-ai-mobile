@@ -11,39 +11,52 @@ export default function BookReader({ book, onBack }) {
   const [showTranslation, setShowTranslation] = useState(false);
   
   const [isPdfLoading, setIsPdfLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(null);
 
   useEffect(() => {
     setPdfUrl(libraryService.getPdfUrl(book.id));
     setIsPdfLoading(true); 
+    setPageNum(1);
   }, [book.id]);
 
   useEffect(() => {
     setTranslatedText('');
     setShowTranslation(false);
+    setIsPdfLoading(true);
   }, [pageNum]);
 
-  const handleTranslate = async () => {
+    const handleTranslate = async () => {
     setIsTranslating(true);
+    setTranslatedText('');
+    setShowTranslation(true);
+    
     try {
+      // Fetch text for the EXACT page number
       const pageData = await libraryService.getPageText(book.id, pageNum);
       
-      if (!pageData.text) {
-        setTranslatedText("No text could be extracted from this page (it might be an image or blank).");
-        setShowTranslation(true);
+      if (!pageData.text || pageData.text.trim().length < 5) {
+        setTranslatedText("⚠️ No text could be extracted from this exact page. It might be an image, a blank page, or a complex layout that the AI cannot read.");
+        setIsTranslating(false);
         return;
       }
 
       const res = await libraryService.translateText(pageData.text, targetLang);
       setTranslatedText(res.translated_text);
-      setShowTranslation(true);
     } catch (err) {
-      alert('Translation failed. Please try again.');
+      setTranslatedText("❌ Translation failed. Please try again.");
+      console.error('Translation error:', err);
     } finally {
       setIsTranslating(false);
     }
   };
 
   const handleContextMenu = (e) => e.preventDefault();
+
+  const goToPage = (newPage) => {
+    if (newPage >= 1) {
+      setPageNum(newPage);
+    }
+  };
 
   return (
     <div className="fade-in" onContextMenu={handleContextMenu} style={{ 
@@ -66,10 +79,14 @@ export default function BookReader({ book, onBack }) {
         alignItems: 'center' 
       }}>
         <button onClick={onBack} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
-          ← Back to Library
+          ← Back
         </button>
-        <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '1.05rem' }}>{book.title}</div>
-        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 600 }}>Page {pageNum}</div>
+        <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '1.05rem', textAlign: 'center', flex: 1, margin: '0 1rem' }}>
+          {book.title}
+        </div>
+        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+          Page {pageNum}{totalPages ? ` of ${totalPages}` : ''}
+        </div>
       </div>
 
       {/* Main Content */}
@@ -104,12 +121,13 @@ export default function BookReader({ book, onBack }) {
                 animation: 'spin 1s linear infinite',
                 marginBottom: '1rem'
               }} />
-              <p style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Loading PDF...</p>
-              <p style={{ fontSize: '0.875rem', color: '#9ca3af', marginTop: '0.5rem' }}>This may take a moment for large files</p>
+              <p style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Loading page {pageNum}...</p>
             </div>
           )}
 
+          {/* CRITICAL FIX: key forces iframe reload when page changes */}
           <iframe 
+            key={`${book.id}-page-${pageNum}`}
             src={`${pdfUrl}#page=${pageNum}&toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
             style={{ width: '100%', height: '100%', border: 'none' }}
             title="Book Reader"
@@ -179,7 +197,7 @@ export default function BookReader({ book, onBack }) {
                     animation: 'spin 1s linear infinite',
                     margin: '0 auto 1rem'
                   }} />
-                  <p>Translating page...</p>
+                  <p>Translating page {pageNum}...</p>
                 </div>
               ) : (
                 translatedText
@@ -204,7 +222,7 @@ export default function BookReader({ book, onBack }) {
         {/* Page Navigation */}
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <button 
-            onClick={() => setPageNum(Math.max(1, pageNum - 1))} 
+            onClick={() => goToPage(pageNum - 1)} 
             disabled={pageNum <= 1}
             className="btn-secondary"
             style={{ padding: '0.625rem 1rem' }}
@@ -214,12 +232,15 @@ export default function BookReader({ book, onBack }) {
           <input 
             type="number" 
             value={pageNum} 
-            onChange={(e) => setPageNum(Math.max(1, parseInt(e.target.value) || 1))}
+            onChange={(e) => {
+              const val = parseInt(e.target.value);
+              if (!isNaN(val) && val >= 1) goToPage(val);
+            }}
             className="input-modern"
             style={{ width: '80px', textAlign: 'center', fontWeight: 700 }}
           />
           <button 
-            onClick={() => setPageNum(pageNum + 1)} 
+            onClick={() => goToPage(pageNum + 1)} 
             className="btn-secondary"
             style={{ padding: '0.625rem 1rem' }}
           >
@@ -247,11 +268,10 @@ export default function BookReader({ book, onBack }) {
             disabled={isTranslating}
             className="btn-primary"
             style={{
-              padding: '0.625rem 1.25rem',
-              background: isTranslating ? 'var(--text-muted)' : 'linear-gradient(135deg, var(--primary), var(--primary-light))'
+              padding: '0.625rem 1.25rem'
             }}
           >
-            {isTranslating ? ' Translating...' : ' Translate Page'}
+            {isTranslating ? '🔄 Translating...' : '🌍 Translate Page'}
           </button>
         </div>
       </div>
