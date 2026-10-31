@@ -75,6 +75,11 @@ export default function ChatScreen() {
 
   const handleSend = async () => {
     if (!input.trim()) return;
+    
+    console.log('📤 Sending message:', input);
+    console.log(' Selected book:', selectedBook);
+    console.log('🔑 Book ID:', selectedBook?.id);
+    
     const userMessage = { role: 'user', content: input };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
@@ -83,18 +88,28 @@ export default function ChatScreen() {
 
     try {
       const response = await tutorService.askQuestion(
-        input, language, selectedBook?.id || null, null, currentConversationId
+        input, 
+        language, 
+        selectedBook?.id || null,  // Make sure we're passing the ID
+        null, 
+        currentConversationId
       );
       
+      console.log('📥 Received response:', response);
+      
       let aiText = response.answer;
+      
+      // Check for LOAD_BOOK tag
       const loadMatch = aiText.match(/\[LOAD_BOOK:(\d+)\]/);
       if (loadMatch) {
         const bookId = parseInt(loadMatch[1]);
+        console.log('🎯 Auto-loading book ID:', bookId);
         const bookToLoad = allResources.find(b => b.id === bookId);
         if (bookToLoad) {
           setSelectedBook(bookToLoad);
           setSearchQuery(bookToLoad.title);
         }
+        // Remove the tag from visible text
         aiText = aiText.replace(/\[LOAD_BOOK:\d+\]/, '').trim();
       }
 
@@ -104,6 +119,7 @@ export default function ChatScreen() {
         loadConversations();
       }
     } catch (err) {
+      console.error(' Error:', err);
       setMessages([...newMessages, { role: 'assistant', content: 'Error: ' + (err.response?.data?.detail || 'Failed to get response.') }]);
     } finally {
       setLoading(false);
@@ -225,7 +241,12 @@ export default function ChatScreen() {
                   filteredResources.map(res => (
                     <div 
                       key={res.id} 
-                      onMouseDown={() => { setSelectedBook(res); setSearchQuery(res.title); setShowSearchResults(false); }}
+                      onMouseDown={() => { 
+                        console.log('✅ Selecting book:', res);
+                        setSelectedBook(res); 
+                        setSearchQuery(res.title); 
+                        setShowSearchResults(false); 
+                      }}
                       style={{ 
                         padding: '0.875rem 1rem', 
                         cursor: 'pointer', 
