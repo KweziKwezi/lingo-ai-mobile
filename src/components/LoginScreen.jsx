@@ -9,20 +9,28 @@ export default function LoginScreen({ onLogin }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
       if (isLogin) {
-        await authService.login(email, password);
+        // 1. Log in and get the token
+        const response = await authService.login(email, password);
+        localStorage.setItem('token', response.access_token);
+        onLogin();
       } else {
+        // 2. Register the new account
         await authService.register(name, email, password);
+        
+        // 3. CRITICAL FIX: Immediately log them in to get the token!
+        const loginResponse = await authService.login(email, password);
+        localStorage.setItem('token', loginResponse.access_token);
+        onLogin();
       }
-      onLogin();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Authentication failed');
+      setError(err.response?.data?.detail || 'Authentication failed. Please check your details.');
     } finally {
       setLoading(false);
     }
