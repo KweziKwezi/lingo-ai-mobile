@@ -411,3 +411,21 @@
 @media (prefers-reduced-motion: reduce) {
   .st-page *, .st-modal * { transition: none !important; }
 }
+/* ---------- Inline AI Explanation ---------- */
+.st-page .st-explanation {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f0fdfa;
+  border: 1px solid #ccfbf1;
+  border-radius: 12px;
+  color: #134e4a;
+  font-size: 15px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  animation: st-fade-in 0.3s ease-in-out;
+}
+
+@keyframes st-fade-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

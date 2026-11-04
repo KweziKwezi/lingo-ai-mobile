@@ -17,11 +17,9 @@ export default function StudyTools() {
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadSubject, setUploadSubject] = useState('');
 
-  const [showAiChat, setShowAiChat] = useState(false);
-  const [activeQuestion, setActiveQuestion] = useState(null);
-  const [aiQuestion, setAiQuestion] = useState('');
-  const [aiResponse, setAiResponse] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
+  // Inline explanation states
+  const [explainingId, setExplainingId] = useState(null);
+  const [explanations, setExplanations] = useState({});
 
   useEffect(() => {
     const fetchBooks = async () => {
@@ -55,7 +53,7 @@ export default function StudyTools() {
 
   const generateQuiz = async () => {
     if (!selectedBookId) return alert("Please select a document.");
-    setLoading(true); setGraded(false); setQuiz(null); setAnswers({});
+    setLoading(true); setGraded(false); setQuiz(null); setAnswers({}); setExplanations({});
     try {
       const data = await tutorService.generateQuiz(selectedBookId, Number(numQuestions));
       setQuiz(data.questions || data);
@@ -73,42 +71,41 @@ export default function StudyTools() {
     } catch (err) { alert("Failed to grade."); } finally { setLoading(false); }
   };
 
-  // FIX: Accept index to reliably look up the student's answer
-  const askAi = (q, index) => { 
-    setActiveQuestion({ ...q, index }); 
-    setShowAiChat(true); 
-    setAiResponse(''); 
-    setAiQuestion(''); 
-  };
+  const getExplanation = async (q, index) => {
+    const qId = q.id || index;
+    
+    // Toggle off if already open
+    if (explanations[qId]) {
+      const newExplanations = { ...explanations };
+      delete newExplanations[qId];
+      setExplanations(newExplanations);
+      return;
+    }
 
-  const sendAi = async () => {
-    if (!aiQuestion.trim()) return;
-    setAiLoading(true);
+    setExplainingId(qId);
     try {
-      const q = activeQuestion;
-      const studentAnswer = answers[q.id || q.index] || 'No answer provided';
-      const correctAnswer = q.correct_answer || q.answer || 'Not provided in data';
+      const correctAnswer = q.correct_answer || q.answer || 'Not provided';
+      const given = answers[qId] || 'No answer provided';
       
-      // FIX: Highly specific prompt to force the AI to explain right vs wrong
-      const prompt = `You are an expert, encouraging tutor. The student is asking about this quiz question: "${q.question}". 
-The correct answer is: "${correctAnswer}". 
-The student answered: "${studentAnswer}". 
-Student's specific question: "${aiQuestion}". 
+      const prompt = `The student got this question wrong or wants an explanation. 
+Question: "${q.question}"
+Correct Answer: "${correctAnswer}"
+Student's Answer: "${given}"
 
-Please provide a clear, step-by-step explanation:
-1. State clearly what the correct answer is and WHY it is correct based on the document context.
-2. Gently explain WHY the student's answer was wrong or incomplete (if applicable).
-3. Keep the tone helpful, educational, and easy to understand.`;
-      
+Please provide a clear, encouraging, and concise explanation of:
+1. Why the student's answer is incorrect (or what they missed).
+2. Why the correct answer is the right one, referencing the document context if possible.
+Keep it under 3-4 sentences.`;
+
       const res = await tutorService.askQuestion(prompt, 'English', selectedBookId, null, null);
-      // Handle different possible response shapes from the backend safely
-      const aiText = res.answer || res.message || (typeof res === 'string' ? res : JSON.stringify(res));
-      setAiResponse(aiText);
-    } catch (err) { 
-      console.error("AI Ask Error:", err);
-      setAiResponse("Sorry, I couldn't process that right now. Please check your connection and try again."); 
-    } finally { 
-      setAiLoading(false); 
+      const aiText = res.answer || res.message || (typeof res === 'string' ? res : 'Could not generate explanation.');
+      
+      setExplanations(prev => ({ ...prev, [qId]: aiText }));
+    } catch (err) {
+      console.error("Explanation error:", err);
+      setExplanations(prev => ({ ...prev, [qId]: "Sorry, I couldn't generate an explanation right now. Please try again." }));
+    } finally {
+      setExplainingId(null);
     }
   };
 
@@ -165,12 +162,12 @@ Please provide a clear, step-by-step explanation:
         <section className="st-card">
           <h3 className="st-card-title"><span className="st-card-icon">📝</span> Your Quiz</h3>
           {quiz.map((q, index) => {
-            const currentAnswer = answers[q.id || index];
+            const qId = q.id || index;
+            const currentAnswer = answers[qId];
             return (
-              <div key={q.id || index} className="st-question">
+              <div key={qId} className="st-question">
                 <h4 className="st-question-text">{index + 1}. {q.question}</h4>
                 
-                {/* FIX: Fallback to text input if backend doesn't provide options */}
                 {q.options && q.options.length > 0 ? (
                   <div className="st-options">
                     {q.options.map((opt, i) => {
@@ -179,10 +176,10 @@ Please provide a clear, step-by-step explanation:
                         <label key={i} className={`st-option ${isChecked ? 'st-option--selected' : ''}`}>
                           <input
                             type="radio"
-                            name={`question-${q.id || index}`}
+                            name={`question-${qId}`}
                             value={opt}
                             checked={isChecked}
-                            onChange={() => setAnswers({ ...answers, [q.id || index]: opt })}
+                            onChange={() => setAnswers({ ...answers, [qId]: opt })}
                           />
                           <span>{opt}</span>
                         </label>
@@ -196,7 +193,7 @@ Please provide a clear, step-by-step explanation:
                       style={{ height: '100px', padding: '12px', resize: 'vertical', fontFamily: 'inherit' }}
                       placeholder="Type your answer here..."
                       value={currentAnswer || ''}
-                      onChange={(e) => setAnswers({ ...answers, [q.id || index]: e.target.value })}
+                      onChange={(e) => setAnswers({ ...answers, [qId]: e.target.value })}
                     />
                   </div>
                 )}
@@ -217,61 +214,52 @@ Please provide a clear, step-by-step explanation:
           </div>
 
           {quiz.map((q, index) => {
-            const given = answers[q.id || index];
+            const qId = q.id || index;
+            const given = answers[qId];
             const correctAnswer = q.correct_answer || q.answer || 'Not provided';
             const isCorrect = given === correctAnswer;
+
             return (
-              <div key={q.id || index} className="st-result">
+              <div key={qId} className="st-result">
                 <h4 className="st-question-text">{index + 1}. {q.question}</h4>
 
-                <div className="st-answer st-answer--correct">
-                  <span className="st-badge">Correct</span>
-                  <span>{correctAnswer}</span>
-                </div>
                 <div className={`st-answer ${isCorrect ? 'st-answer--correct' : 'st-answer--wrong'}`}>
-                  <span className="st-badge">Your answer</span>
+                  <span className="st-badge">{isCorrect ? 'Your Answer' : 'Your Answer (Incorrect)'}</span>
                   <span>{given || 'No answer'}</span>
                 </div>
 
-                {/* FIX: Pass index to askAi */}
-                <button className="st-btn st-btn--secondary st-btn--sm" onClick={() => askAi(q, index)}>
-                  🤖 Ask AI to explain
+                {!isCorrect && (
+                  <div className="st-answer st-answer--correct">
+                    <span className="st-badge">Correct Answer</span>
+                    <span>{correctAnswer}</span>
+                  </div>
+                )}
+
+                <button 
+                  className="st-btn st-btn--secondary st-btn--sm" 
+                  onClick={() => getExplanation(q, index)}
+                  disabled={explainingId === qId}
+                  style={{ marginTop: '12px' }}
+                >
+                  {explainingId === qId ? '⏳ Thinking...' : (explanations[qId] ? '❌ Hide Explanation' : '💡 Explain my mistake')}
                 </button>
+
+                {explanations[qId] && (
+                  <div className="st-explanation">
+                    {explanations[qId]}
+                  </div>
+                )}
               </div>
             );
           })}
 
-          <button className="st-btn st-btn--muted st-btn--block st-reset" onClick={() => { setGraded(false); setQuiz(null); }}>
+          <button
+            className="st-btn st-btn--muted st-btn--block st-reset"
+            onClick={() => { setGraded(false); setQuiz(null); setExplanations({}); }}
+          >
             Generate new quiz
           </button>
         </section>
-      )}
-
-      {showAiChat && activeQuestion && (
-        <div className="st-modal-backdrop" role="dialog" aria-modal="true" aria-label="AI tutor explanation" onClick={() => setShowAiChat(false)}>
-          <div className="st-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="st-modal-head">
-              <h3 className="st-modal-title">AI Tutor Explanation</h3>
-              <button className="st-modal-close" onClick={() => setShowAiChat(false)} aria-label="Close">×</button>
-            </div>
-
-            {aiResponse && <div className="st-modal-response">{aiResponse}</div>}
-
-            <div className="st-modal-row">
-              <input
-                className="st-input"
-                type="text"
-                placeholder="Ask why the answer is correct..."
-                value={aiQuestion}
-                onChange={(e) => setAiQuestion(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendAi()}
-              />
-              <button className="st-btn st-btn--primary" onClick={sendAi} disabled={aiLoading} style={{ padding: '0 24px' }}>
-                {aiLoading ? '...' : 'Send'}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
