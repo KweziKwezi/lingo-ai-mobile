@@ -429,3 +429,13 @@
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+/* Neutral state for open-ended pending evaluation */
+.st-page .st-answer--neutral {
+  background: #f8fafc;
+  border: 1px solid var(--st-border);
+  color: var(--st-muted);
+}
+.st-page .st-answer--neutral .st-badge {
+  background: #e2e8f0;
+  color: #475569;
+}

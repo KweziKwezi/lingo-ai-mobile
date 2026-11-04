@@ -70,9 +70,10 @@ export default function StudyTools() {
     } catch (err) { alert("Failed to grade."); } finally { setLoading(false); }
   };
 
-  const getExplanation = async (q, index) => {
+  const getEvaluation = async (q, index) => {
     const qId = q.id || index;
     
+    // Toggle off if already open
     if (explanations[qId]) {
       const newExplanations = { ...explanations };
       delete newExplanations[qId];
@@ -82,40 +83,47 @@ export default function StudyTools() {
 
     setExplainingId(qId);
     try {
-      // Resolve the correct answer text (handle indices like "0", "1" or letters like "A", "B")
-      let correctAnswerText = q.correct_answer || q.answer || 'Not provided in document';
-      if (q.options && Array.isArray(q.options)) {
-        const numIdx = parseInt(correctAnswerText, 10);
-        if (!isNaN(numIdx) && q.options[numIdx] !== undefined) {
-          correctAnswerText = q.options[numIdx];
-        } else {
-          const charMap = { 'A': 0, 'B': 1, 'C': 2, 'D': 3, 'a': 0, 'b': 1, 'c': 2, 'd': 3 };
-          const mappedIdx = charMap[correctAnswerText];
-          if (mappedIdx !== undefined && q.options[mappedIdx] !== undefined) {
-            correctAnswerText = q.options[mappedIdx];
+      const given = answers[qId] || 'No answer provided';
+      const isOpenEnded = !q.options || q.options.length === 0;
+      
+      let prompt = "";
+      if (isOpenEnded) {
+        // Open-ended specific prompt: AI scans doc to find the ideal answer and evaluates the student
+        prompt = `This is an open-ended question: "${q.question}". 
+        The student answered: "${given}". 
+        Please scan the provided document context and provide:
+        1. The ideal, factual correct answer based *strictly* on the document.
+        2. A brief, encouraging evaluation of the student's answer, pointing out exactly what they got right and what key details they missed compared to the ideal answer.
+        Format your response clearly with "✅ Ideal Answer:" and "📝 Evaluation:".`;
+      } else {
+        // Multiple choice specific prompt
+        let correctAnswerText = q.correct_answer || q.answer || 'Not provided';
+        if (Array.isArray(q.options)) {
+          const numIdx = parseInt(correctAnswerText, 10);
+          if (!isNaN(numIdx) && q.options[numIdx] !== undefined) {
+            correctAnswerText = q.options[numIdx];
+          } else {
+            const charMap = { 'A': 0, 'B': 1, 'C': 2, 'D': 3, 'a': 0, 'b': 1, 'c': 2, 'd': 3 };
+            const mappedIdx = charMap[correctAnswerText];
+            if (mappedIdx !== undefined && q.options[mappedIdx] !== undefined) {
+              correctAnswerText = q.options[mappedIdx];
+            }
           }
         }
+        prompt = `The student wants an explanation for this multiple-choice question. 
+        Question: "${q.question}"
+        Correct Answer: "${correctAnswerText}"
+        Student's Answer: "${given}"
+        Please provide a clear, encouraging explanation of why the student's answer is incorrect (or what they missed) and why the correct answer is the right one based on the document context. Keep it under 3-4 sentences.`;
       }
 
-      const given = answers[qId] || 'No answer provided';
-      
-      const prompt = `The student wants an explanation for this quiz question. 
-Question: "${q.question}"
-Correct Answer: "${correctAnswerText}"
-Student's Answer: "${given}"
-
-Please provide a clear, encouraging, and concise explanation of:
-1. Why the student's answer is incorrect (or what they missed).
-2. Why the correct answer ("${correctAnswerText}") is the right one, referencing the document context if possible.
-Keep it under 3-4 sentences.`;
-
       const res = await tutorService.askQuestion(prompt, 'English', selectedBookId, null, null);
-      const aiText = res.answer || res.message || (typeof res === 'string' ? res : 'Could not generate explanation.');
+      const aiText = res.answer || res.message || (typeof res === 'string' ? res : 'Could not generate evaluation.');
       
       setExplanations(prev => ({ ...prev, [qId]: aiText }));
     } catch (err) {
-      console.error("Explanation error:", err);
-      setExplanations(prev => ({ ...prev, [qId]: "Sorry, I couldn't generate an explanation right now. Please try again." }));
+      console.error("Evaluation error:", err);
+      setExplanations(prev => ({ ...prev, [qId]: "Sorry, I couldn't generate an evaluation right now. Please try again." }));
     } finally {
       setExplainingId(null);
     }
@@ -222,16 +230,17 @@ Keep it under 3-4 sentences.`;
         <section className="st-card">
           <div className="st-score">
             <h2 className="st-score-value">Your Score: {score || 'N/A'}</h2>
-            <p className="st-score-note">Review your answers and AI explanations below.</p>
+            <p className="st-score-note">Review your answers and AI evaluations below.</p>
           </div>
 
           {quiz.map((q, index) => {
             const qId = q.id || index;
             const given = answers[qId] || 'No answer';
+            const isOpenEnded = !q.options || q.options.length === 0;
             
-            // Resolve correct answer text (handle indices like "0", "1" or letters like "A", "B")
-            let correctAnswerText = q.correct_answer || q.answer || 'Not provided in document';
-            if (q.options && Array.isArray(q.options)) {
+            // Resolve correct answer text for multiple choice
+            let correctAnswerText = q.correct_answer || q.answer || '';
+            if (!isOpenEnded && Array.isArray(q.options)) {
               const numIdx = parseInt(correctAnswerText, 10);
               if (!isNaN(numIdx) && q.options[numIdx] !== undefined) {
                 correctAnswerText = q.options[numIdx];
@@ -244,32 +253,39 @@ Keep it under 3-4 sentences.`;
               }
             }
 
-            // Check if correct (case-insensitive string match)
-            const isCorrect = String(given).trim().toLowerCase() === String(correctAnswerText).trim().toLowerCase();
+            // For open-ended, we rely on the AI evaluation, so we don't show a rigid "Correct/Incorrect" badge initially
+            const isCorrect = isOpenEnded ? true : (String(given).trim().toLowerCase() === String(correctAnswerText).trim().toLowerCase());
 
             return (
               <div key={qId} className="st-result">
                 <h4 className="st-question-text">{index + 1}. {q.question}</h4>
 
-                <div className={`st-answer ${isCorrect ? 'st-answer--correct' : 'st-answer--wrong'}`}>
-                  <span className="st-badge">{isCorrect ? 'Your Answer' : 'Your Answer (Incorrect)'}</span>
+                <div className={`st-answer ${isOpenEnded ? 'st-answer--neutral' : (isCorrect ? 'st-answer--correct' : 'st-answer--wrong')}`}>
+                  <span className="st-badge">{isOpenEnded ? 'Your Answer' : (isCorrect ? 'Your Answer' : 'Your Answer (Incorrect)')}</span>
                   <span>{given}</span>
                 </div>
 
-                {!isCorrect && (
+                {!isOpenEnded && !isCorrect && (
                   <div className="st-answer st-answer--correct">
                     <span className="st-badge">Correct Answer</span>
                     <span>{correctAnswerText}</span>
                   </div>
                 )}
 
+                {isOpenEnded && !explanations[qId] && (
+                  <div className="st-answer st-answer--neutral" style={{ borderStyle: 'dashed' }}>
+                    <span className="st-badge">AI Evaluation</span>
+                    <span>Click below to have the AI scan the document and evaluate your answer.</span>
+                  </div>
+                )}
+
                 <button 
                   className="st-btn st-btn--secondary st-btn--sm" 
-                  onClick={() => getExplanation(q, index)}
+                  onClick={() => getEvaluation(q, index)}
                   disabled={explainingId === qId}
                   style={{ marginTop: '12px' }}
                 >
-                  {explainingId === qId ? '⏳ Thinking...' : (explanations[qId] ? '❌ Hide Explanation' : '💡 Explain my mistake')}
+                  {explainingId === qId ? '⏳ Scanning document...' : (explanations[qId] ? '❌ Hide Evaluation' : (isOpenEnded ? '💡 Get AI Evaluation & Correct Answer' : '💡 Explain my mistake'))}
                 </button>
 
                 {explanations[qId] && (
