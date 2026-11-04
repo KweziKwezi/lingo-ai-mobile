@@ -55,11 +55,14 @@ export default function StudyTools() {
 
   const generateQuiz = async () => {
     if (!selectedBookId) return alert("Please select a document.");
-    setLoading(true); setGraded(false); setQuiz(null);
+    setLoading(true); setGraded(false); setQuiz(null); setAnswers({});
     try {
-      const data = await tutorService.generateQuiz(selectedBookId, numQuestions);
+      const data = await tutorService.generateQuiz(selectedBookId, Number(numQuestions));
       setQuiz(data.questions || data);
-    } catch (err) { alert("Failed to generate quiz."); } finally { setLoading(false); }
+    } catch (err) { 
+      console.error("Quiz generation error:", err);
+      alert("Failed to generate quiz. Please try again."); 
+    } finally { setLoading(false); }
   };
 
   const submitQuiz = async () => {
@@ -70,152 +73,142 @@ export default function StudyTools() {
     } catch (err) { alert("Failed to grade."); } finally { setLoading(false); }
   };
 
-  const askAi = (q) => { setActiveQuestion(q); setShowAiChat(true); setAiResponse(''); setAiQuestion(''); };
+  // FIX: Accept index to reliably look up the student's answer
+  const askAi = (q, index) => { 
+    setActiveQuestion({ ...q, index }); 
+    setShowAiChat(true); 
+    setAiResponse(''); 
+    setAiQuestion(''); 
+  };
 
   const sendAi = async () => {
     if (!aiQuestion.trim()) return;
     setAiLoading(true);
     try {
-      const prompt = `Question: "${activeQuestion.question}". Correct: "${activeQuestion.correct_answer}". Student answered: "${answers[activeQuestion.id] || 'None'}". Student asks: "${aiQuestion}". Explain clearly.`;
+      const q = activeQuestion;
+      const studentAnswer = answers[q.id || q.index] || 'No answer provided';
+      const correctAnswer = q.correct_answer || q.answer || 'Not provided in data';
+      
+      // FIX: Highly specific prompt to force the AI to explain right vs wrong
+      const prompt = `You are an expert, encouraging tutor. The student is asking about this quiz question: "${q.question}". 
+The correct answer is: "${correctAnswer}". 
+The student answered: "${studentAnswer}". 
+Student's specific question: "${aiQuestion}". 
+
+Please provide a clear, step-by-step explanation:
+1. State clearly what the correct answer is and WHY it is correct based on the document context.
+2. Gently explain WHY the student's answer was wrong or incomplete (if applicable).
+3. Keep the tone helpful, educational, and easy to understand.`;
+      
       const res = await tutorService.askQuestion(prompt, 'English', selectedBookId, null, null);
-      setAiResponse(res.answer);
-    } catch (err) { setAiResponse("Error processing."); } finally { setAiLoading(false); }
+      // Handle different possible response shapes from the backend safely
+      const aiText = res.answer || res.message || (typeof res === 'string' ? res : JSON.stringify(res));
+      setAiResponse(aiText);
+    } catch (err) { 
+      console.error("AI Ask Error:", err);
+      setAiResponse("Sorry, I couldn't process that right now. Please check your connection and try again."); 
+    } finally { 
+      setAiLoading(false); 
+    }
   };
 
   return (
     <div className="st-page">
-      {/* Header */}
       <header className="st-header">
         <h1 className="st-title">Quiz Generator</h1>
         <p className="st-subtitle">Create custom quizzes from your documents instantly.</p>
       </header>
 
-      {/* Upload Card */}
       <section className="st-card">
         <h3 className="st-card-title"><span className="st-card-icon">📤</span> Upload New Document</h3>
-
         <div className="st-grid-2">
-          <input
-            id="st-upload-title"
-            className="st-input"
-            type="text"
-            placeholder="Document title (e.g., Biology Ch1)"
-            aria-label="Document title"
-            value={uploadTitle}
-            onChange={(e) => setUploadTitle(e.target.value)}
-          />
-          <input
-            id="st-upload-subject"
-            className="st-input"
-            type="text"
-            placeholder="Subject (optional)"
-            aria-label="Subject"
-            value={uploadSubject}
-            onChange={(e) => setUploadSubject(e.target.value)}
-          />
+          <input id="st-upload-title" className="st-input" type="text" placeholder="Document title (e.g., Biology Ch1)" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} />
+          <input id="st-upload-subject" className="st-input" type="text" placeholder="Subject (optional)" value={uploadSubject} onChange={(e) => setUploadSubject(e.target.value)} />
         </div>
-
         <div className="st-actions">
           <div style={{ position: 'relative', display: 'flex' }}>
-            <input
-              className="st-file-input"
-              type="file"
-              id="st-file-upload"
-              accept=".pdf,.pptx"
-              onChange={(e) => setUploadFile(e.target.files[0])}
-            />
+            <input className="st-file-input" type="file" id="st-file-upload" accept=".pdf,.pptx" onChange={(e) => setUploadFile(e.target.files[0])} />
             <label htmlFor="st-file-upload" className="st-btn st-btn--secondary st-btn--block">
               <span className="st-file-name">{uploadFile ? uploadFile.name : 'Choose file'}</span>
             </label>
           </div>
-
-          <button
-            className="st-btn st-btn--primary"
-            onClick={handleUpload}
-            disabled={uploading}
-          >
+          <button className="st-btn st-btn--primary" onClick={handleUpload} disabled={uploading}>
             {uploading ? 'Uploading...' : 'Upload & select'}
           </button>
         </div>
       </section>
 
-      {/* Quiz Settings Card */}
       <section className="st-card">
         <h3 className="st-card-title"><span className="st-card-icon">⚙️</span> Quiz Settings</h3>
-
         <div className="st-field">
           <div className="st-label-row">
             <label className="st-label" htmlFor="st-doc-select">Select document</label>
           </div>
-          <select
-            id="st-doc-select"
-            className="st-select"
-            value={selectedBookId}
-            onChange={(e) => setSelectedBookId(e.target.value)}
-          >
+          <select id="st-doc-select" className="st-select" value={selectedBookId} onChange={(e) => setSelectedBookId(e.target.value)}>
             <option value="">Choose a document...</option>
             {books.map(book => <option key={book.id} value={book.id}>{book.label || book.title}</option>)}
           </select>
         </div>
-
         <div className="st-field" style={{ marginBottom: 0 }}>
           <div className="st-label-row">
             <label className="st-label" htmlFor="st-num-questions">Number of questions</label>
             <span className="st-value">{numQuestions}</span>
           </div>
-          <input
-            id="st-num-questions"
-            className="st-range"
-            type="range"
-            min="1"
-            max="20"
-            value={numQuestions}
-            onChange={(e) => setNumQuestions(Number(e.target.value))}
-          />
+          <input id="st-num-questions" className="st-range" type="range" min="1" max="20" value={numQuestions} onChange={(e) => setNumQuestions(Number(e.target.value))} />
         </div>
-
-        <button
-          className="st-btn st-btn--success st-btn--block st-btn--lg st-generate"
-          onClick={generateQuiz}
-          disabled={loading || !selectedBookId}
-        >
+        <button className="st-btn st-btn--success st-btn--block st-btn--lg st-generate" onClick={generateQuiz} disabled={loading || !selectedBookId}>
           {loading ? 'Generating...' : '🎯 Generate quiz'}
         </button>
       </section>
 
-      {/* Quiz Display */}
       {quiz && !graded && (
         <section className="st-card">
           <h3 className="st-card-title"><span className="st-card-icon">📝</span> Your Quiz</h3>
-          {quiz.map((q, index) => (
-            <div key={q.id || index} className="st-question">
-              <h4 className="st-question-text">{index + 1}. {q.question}</h4>
-              <div className="st-options">
-                {q.options?.map((opt, i) => (
-                  <label key={i} className="st-option">
-                    <input
-                      type="radio"
-                      name={`q-${index}`}
-                      value={opt}
-                      onChange={() => setAnswers({ ...answers, [q.id || index]: opt })}
+          {quiz.map((q, index) => {
+            const currentAnswer = answers[q.id || index];
+            return (
+              <div key={q.id || index} className="st-question">
+                <h4 className="st-question-text">{index + 1}. {q.question}</h4>
+                
+                {/* FIX: Fallback to text input if backend doesn't provide options */}
+                {q.options && q.options.length > 0 ? (
+                  <div className="st-options">
+                    {q.options.map((opt, i) => {
+                      const isChecked = currentAnswer === opt;
+                      return (
+                        <label key={i} className={`st-option ${isChecked ? 'st-option--selected' : ''}`}>
+                          <input
+                            type="radio"
+                            name={`question-${q.id || index}`}
+                            value={opt}
+                            checked={isChecked}
+                            onChange={() => setAnswers({ ...answers, [q.id || index]: opt })}
+                          />
+                          <span>{opt}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="st-field">
+                    <textarea
+                      className="st-input"
+                      style={{ height: '100px', padding: '12px', resize: 'vertical', fontFamily: 'inherit' }}
+                      placeholder="Type your answer here..."
+                      value={currentAnswer || ''}
+                      onChange={(e) => setAnswers({ ...answers, [q.id || index]: e.target.value })}
                     />
-                    <span>{opt}</span>
-                  </label>
-                ))}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
-          <button
-            className="st-btn st-btn--secondary st-btn--block st-btn--lg"
-            onClick={submitQuiz}
-            disabled={loading}
-          >
+            );
+          })}
+          <button className="st-btn st-btn--secondary st-btn--block st-btn--lg" onClick={submitQuiz} disabled={loading}>
             {loading ? 'Grading...' : 'Submit & grade quiz'}
           </button>
         </section>
       )}
 
-      {/* Graded Results */}
       {graded && (
         <section className="st-card">
           <div className="st-score">
@@ -225,42 +218,40 @@ export default function StudyTools() {
 
           {quiz.map((q, index) => {
             const given = answers[q.id || index];
-            const isCorrect = given === q.correct_answer;
+            const correctAnswer = q.correct_answer || q.answer || 'Not provided';
+            const isCorrect = given === correctAnswer;
             return (
               <div key={q.id || index} className="st-result">
                 <h4 className="st-question-text">{index + 1}. {q.question}</h4>
 
                 <div className="st-answer st-answer--correct">
                   <span className="st-badge">Correct</span>
-                  <span>{q.correct_answer}</span>
+                  <span>{correctAnswer}</span>
                 </div>
                 <div className={`st-answer ${isCorrect ? 'st-answer--correct' : 'st-answer--wrong'}`}>
                   <span className="st-badge">Your answer</span>
                   <span>{given || 'No answer'}</span>
                 </div>
 
-                <button className="st-btn st-btn--secondary st-btn--sm" onClick={() => askAi(q)}>
+                {/* FIX: Pass index to askAi */}
+                <button className="st-btn st-btn--secondary st-btn--sm" onClick={() => askAi(q, index)}>
                   🤖 Ask AI to explain
                 </button>
               </div>
             );
           })}
 
-          <button
-            className="st-btn st-btn--muted st-btn--block st-reset"
-            onClick={() => { setGraded(false); setQuiz(null); }}
-          >
+          <button className="st-btn st-btn--muted st-btn--block st-reset" onClick={() => { setGraded(false); setQuiz(null); }}>
             Generate new quiz
           </button>
         </section>
       )}
 
-      {/* AI Chat Modal */}
       {showAiChat && activeQuestion && (
-        <div className="st-modal-backdrop" role="dialog" aria-modal="true" aria-label="AI tutor explanation">
-          <div className="st-modal">
+        <div className="st-modal-backdrop" role="dialog" aria-modal="true" aria-label="AI tutor explanation" onClick={() => setShowAiChat(false)}>
+          <div className="st-modal" onClick={(e) => e.stopPropagation()}>
             <div className="st-modal-head">
-              <h3 className="st-modal-title">AI tutor explanation</h3>
+              <h3 className="st-modal-title">AI Tutor Explanation</h3>
               <button className="st-modal-close" onClick={() => setShowAiChat(false)} aria-label="Close">×</button>
             </div>
 
@@ -271,12 +262,11 @@ export default function StudyTools() {
                 className="st-input"
                 type="text"
                 placeholder="Ask why the answer is correct..."
-                aria-label="Your question for the AI tutor"
                 value={aiQuestion}
                 onChange={(e) => setAiQuestion(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && sendAi()}
               />
-              <button className="st-btn st-btn--primary" onClick={sendAi} disabled={aiLoading}>
+              <button className="st-btn st-btn--primary" onClick={sendAi} disabled={aiLoading} style={{ padding: '0 24px' }}>
                 {aiLoading ? '...' : 'Send'}
               </button>
             </div>
