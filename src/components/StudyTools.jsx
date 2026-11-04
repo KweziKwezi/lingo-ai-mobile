@@ -17,7 +17,6 @@ export default function StudyTools() {
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadSubject, setUploadSubject] = useState('');
 
-  // Inline explanation states
   const [explainingId, setExplainingId] = useState(null);
   const [explanations, setExplanations] = useState({});
 
@@ -74,7 +73,6 @@ export default function StudyTools() {
   const getExplanation = async (q, index) => {
     const qId = q.id || index;
     
-    // Toggle off if already open
     if (explanations[qId]) {
       const newExplanations = { ...explanations };
       delete newExplanations[qId];
@@ -84,17 +82,31 @@ export default function StudyTools() {
 
     setExplainingId(qId);
     try {
-      const correctAnswer = q.correct_answer || q.answer || 'Not provided';
+      // Resolve the correct answer text (handle indices like "0", "1" or letters like "A", "B")
+      let correctAnswerText = q.correct_answer || q.answer || 'Not provided in document';
+      if (q.options && Array.isArray(q.options)) {
+        const numIdx = parseInt(correctAnswerText, 10);
+        if (!isNaN(numIdx) && q.options[numIdx] !== undefined) {
+          correctAnswerText = q.options[numIdx];
+        } else {
+          const charMap = { 'A': 0, 'B': 1, 'C': 2, 'D': 3, 'a': 0, 'b': 1, 'c': 2, 'd': 3 };
+          const mappedIdx = charMap[correctAnswerText];
+          if (mappedIdx !== undefined && q.options[mappedIdx] !== undefined) {
+            correctAnswerText = q.options[mappedIdx];
+          }
+        }
+      }
+
       const given = answers[qId] || 'No answer provided';
       
-      const prompt = `The student got this question wrong or wants an explanation. 
+      const prompt = `The student wants an explanation for this quiz question. 
 Question: "${q.question}"
-Correct Answer: "${correctAnswer}"
+Correct Answer: "${correctAnswerText}"
 Student's Answer: "${given}"
 
 Please provide a clear, encouraging, and concise explanation of:
 1. Why the student's answer is incorrect (or what they missed).
-2. Why the correct answer is the right one, referencing the document context if possible.
+2. Why the correct answer ("${correctAnswerText}") is the right one, referencing the document context if possible.
 Keep it under 3-4 sentences.`;
 
       const res = await tutorService.askQuestion(prompt, 'English', selectedBookId, null, null);
@@ -209,15 +221,31 @@ Keep it under 3-4 sentences.`;
       {graded && (
         <section className="st-card">
           <div className="st-score">
-            <h2 className="st-score-value">Score: {score}</h2>
-            <p className="st-score-note">Review your answers below.</p>
+            <h2 className="st-score-value">Your Score: {score || 'N/A'}</h2>
+            <p className="st-score-note">Review your answers and AI explanations below.</p>
           </div>
 
           {quiz.map((q, index) => {
             const qId = q.id || index;
-            const given = answers[qId];
-            const correctAnswer = q.correct_answer || q.answer || 'Not provided';
-            const isCorrect = given === correctAnswer;
+            const given = answers[qId] || 'No answer';
+            
+            // Resolve correct answer text (handle indices like "0", "1" or letters like "A", "B")
+            let correctAnswerText = q.correct_answer || q.answer || 'Not provided in document';
+            if (q.options && Array.isArray(q.options)) {
+              const numIdx = parseInt(correctAnswerText, 10);
+              if (!isNaN(numIdx) && q.options[numIdx] !== undefined) {
+                correctAnswerText = q.options[numIdx];
+              } else {
+                const charMap = { 'A': 0, 'B': 1, 'C': 2, 'D': 3, 'a': 0, 'b': 1, 'c': 2, 'd': 3 };
+                const mappedIdx = charMap[correctAnswerText];
+                if (mappedIdx !== undefined && q.options[mappedIdx] !== undefined) {
+                  correctAnswerText = q.options[mappedIdx];
+                }
+              }
+            }
+
+            // Check if correct (case-insensitive string match)
+            const isCorrect = String(given).trim().toLowerCase() === String(correctAnswerText).trim().toLowerCase();
 
             return (
               <div key={qId} className="st-result">
@@ -225,13 +253,13 @@ Keep it under 3-4 sentences.`;
 
                 <div className={`st-answer ${isCorrect ? 'st-answer--correct' : 'st-answer--wrong'}`}>
                   <span className="st-badge">{isCorrect ? 'Your Answer' : 'Your Answer (Incorrect)'}</span>
-                  <span>{given || 'No answer'}</span>
+                  <span>{given}</span>
                 </div>
 
                 {!isCorrect && (
                   <div className="st-answer st-answer--correct">
                     <span className="st-badge">Correct Answer</span>
-                    <span>{correctAnswer}</span>
+                    <span>{correctAnswerText}</span>
                   </div>
                 )}
 
