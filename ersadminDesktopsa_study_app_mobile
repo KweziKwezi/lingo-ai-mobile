@@ -1,0 +1,10 @@
+[33m1d53c62[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Add missing default export to App.jsx
+[33m43bedf0[m Fix token saving on registration
+[33m71c11d8[m Fix App.jsx and api.js errors
+[33m31757a2[m Fix isAuthenticated boolean function error in App.jsx
+[33md4d4ffa[m Restore all missing service exports to api.js to fix build error
+[33m9a2950b[m Fix 401 auth error: Add axios interceptor and auto-login after registration
+[33mbb60ad9[m Remove translate paper button from frontend
+[33m1b0a2a6[m Add Translate Paper button
+[33m006ea11[m Add debug logging to track book selection and ID passing
+[33me53926d[m Add delete button to Admin Past Papers list
