@@ -11,7 +11,7 @@ export default function StudyTools() {
   const [answers, setAnswers] = useState({});
   const [graded, setGraded] = useState(false);
   const [score, setScore] = useState(null);
-  
+
   const [uploading, setUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadTitle, setUploadTitle] = useState('');
@@ -57,8 +57,7 @@ export default function StudyTools() {
     if (!selectedBookId) return alert("Please select a document.");
     setLoading(true); setGraded(false); setQuiz(null);
     try {
-      // FIX: Wrap in Number() to ensure backend receives an integer
-      const data = await tutorService.generateQuiz(selectedBookId, Number(numQuestions));
+      const data = await tutorService.generateQuiz(selectedBookId, numQuestions);
       setQuiz(data.questions || data);
     } catch (err) { alert("Failed to generate quiz."); } finally { setLoading(false); }
   };
@@ -85,191 +84,199 @@ export default function StudyTools() {
 
   return (
     <div className="st-page">
-      
-      <div className="st-header">
-        <h1>Quiz Generator</h1>
-        <p>Create custom quizzes from your documents instantly.</p>
-      </div>
+      {/* Header */}
+      <header className="st-header">
+        <h1 className="st-title">Quiz Generator</h1>
+        <p className="st-subtitle">Create custom quizzes from your documents instantly.</p>
+      </header>
 
-      <div className="st-card">
-        <h3 className="st-card-title">
-          <span className="st-card-title-icon">📤</span> Upload New Document
-        </h3>
-        
-        <div className="st-upload-grid">
-          <input 
-            id="upload-title"
-            type="text" 
-            placeholder="Document Title (e.g., Biology Ch1)" 
-            value={uploadTitle} 
-            onChange={(e) => setUploadTitle(e.target.value)} 
-            className="st-input" 
+      {/* Upload Card */}
+      <section className="st-card">
+        <h3 className="st-card-title"><span className="st-card-icon">📤</span> Upload New Document</h3>
+
+        <div className="st-grid-2">
+          <input
+            id="st-upload-title"
+            className="st-input"
+            type="text"
+            placeholder="Document title (e.g., Biology Ch1)"
+            aria-label="Document title"
+            value={uploadTitle}
+            onChange={(e) => setUploadTitle(e.target.value)}
           />
-          <input 
-            id="upload-subject"
-            type="text" 
-            placeholder="Subject (Optional)" 
-            value={uploadSubject} 
-            onChange={(e) => setUploadSubject(e.target.value)} 
-            className="st-input" 
+          <input
+            id="st-upload-subject"
+            className="st-input"
+            type="text"
+            placeholder="Subject (optional)"
+            aria-label="Subject"
+            value={uploadSubject}
+            onChange={(e) => setUploadSubject(e.target.value)}
           />
         </div>
 
-        <div className="st-upload-row">
-          <input 
-            type="file" 
-            id="file-upload" 
-            accept=".pdf,.pptx" 
-            onChange={(e) => setUploadFile(e.target.files[0])} 
-            style={{ display: 'none' }} 
-          />
-          <label 
-            htmlFor="file-upload" 
-            className="st-btn st-btn-secondary st-file-label"
+        <div className="st-actions">
+          <div style={{ position: 'relative', display: 'flex' }}>
+            <input
+              className="st-file-input"
+              type="file"
+              id="st-file-upload"
+              accept=".pdf,.pptx"
+              onChange={(e) => setUploadFile(e.target.files[0])}
+            />
+            <label htmlFor="st-file-upload" className="st-btn st-btn--secondary st-btn--block">
+              <span className="st-file-name">{uploadFile ? uploadFile.name : 'Choose file'}</span>
+            </label>
+          </div>
+
+          <button
+            className="st-btn st-btn--primary"
+            onClick={handleUpload}
+            disabled={uploading}
           >
-            {uploadFile ? uploadFile.name : 'Choose File...'}
-          </label>
-          
-          <button onClick={handleUpload} disabled={uploading} className="st-btn st-btn-primary">
-            {uploading ? 'Uploading...' : 'Upload & Select'}
+            {uploading ? 'Uploading...' : 'Upload & select'}
           </button>
         </div>
-      </div>
+      </section>
 
-      <div className="st-card">
-        <h3 className="st-card-title">
-          <span className="st-card-title-icon">⚙️</span> Quiz Settings
-        </h3>
-        
-        <label htmlFor="doc-select" className="st-label">Select Document</label>
-        <select 
-          id="doc-select"
-          value={selectedBookId} 
-          onChange={(e) => setSelectedBookId(e.target.value)} 
-          className="st-select"
-        >
-          <option value="">Choose a document...</option>
-          {books.map(book => <option key={book.id} value={book.id}>{book.label || book.title}</option>)}
-        </select>
+      {/* Quiz Settings Card */}
+      <section className="st-card">
+        <h3 className="st-card-title"><span className="st-card-icon">⚙️</span> Quiz Settings</h3>
 
-        <div className="st-label-row" style={{ marginTop: '24px' }}>
-          <label htmlFor="q-range" className="st-label" style={{margin: 0}}>Number of Questions</label>
-          <span className="st-val">{numQuestions}</span>
+        <div className="st-field">
+          <div className="st-label-row">
+            <label className="st-label" htmlFor="st-doc-select">Select document</label>
+          </div>
+          <select
+            id="st-doc-select"
+            className="st-select"
+            value={selectedBookId}
+            onChange={(e) => setSelectedBookId(e.target.value)}
+          >
+            <option value="">Choose a document...</option>
+            {books.map(book => <option key={book.id} value={book.id}>{book.label || book.title}</option>)}
+          </select>
         </div>
-        <input 
-          id="q-range"
-          type="range" 
-          min="1" 
-          max="20" 
-          value={numQuestions} 
-          onChange={(e) => setNumQuestions(e.target.value)} 
-          className="st-range" 
-        />
 
-        <button 
-          onClick={generateQuiz} 
-          disabled={loading || !selectedBookId} 
-          className="st-btn st-btn-success st-btn-full"
+        <div className="st-field" style={{ marginBottom: 0 }}>
+          <div className="st-label-row">
+            <label className="st-label" htmlFor="st-num-questions">Number of questions</label>
+            <span className="st-value">{numQuestions}</span>
+          </div>
+          <input
+            id="st-num-questions"
+            className="st-range"
+            type="range"
+            min="1"
+            max="20"
+            value={numQuestions}
+            onChange={(e) => setNumQuestions(Number(e.target.value))}
+          />
+        </div>
+
+        <button
+          className="st-btn st-btn--success st-btn--block st-btn--lg st-generate"
+          onClick={generateQuiz}
+          disabled={loading || !selectedBookId}
         >
-          {loading ? 'Generating...' : '🎯 Generate Quiz'}
+          {loading ? 'Generating...' : '🎯 Generate quiz'}
         </button>
-      </div>
+      </section>
 
+      {/* Quiz Display */}
       {quiz && !graded && (
-        <div className="st-card">
-          <h3 className="st-card-title">📝 Your Quiz</h3>
+        <section className="st-card">
+          <h3 className="st-card-title"><span className="st-card-icon">📝</span> Your Quiz</h3>
           {quiz.map((q, index) => (
-            <div key={q.id || index} className="st-q-block">
-              <h4 className="st-q-title">{index + 1}. {q.question}</h4>
-              <div>
-                {q.options?.map((opt, i) => {
-                  const isSelected = answers[q.id || index] === opt;
-                  return (
-                    <label key={i} className={`st-option ${isSelected ? 'selected' : ''}`}>
-                      <input 
-                        type="radio" 
-                        name={`q-${index}`} 
-                        value={opt} 
-                        onChange={() => setAnswers({...answers, [q.id || index]: opt})} 
-                      />
-                      <span>{opt}</span>
-                    </label>
-                  );
-                })}
+            <div key={q.id || index} className="st-question">
+              <h4 className="st-question-text">{index + 1}. {q.question}</h4>
+              <div className="st-options">
+                {q.options?.map((opt, i) => (
+                  <label key={i} className="st-option">
+                    <input
+                      type="radio"
+                      name={`q-${index}`}
+                      value={opt}
+                      onChange={() => setAnswers({ ...answers, [q.id || index]: opt })}
+                    />
+                    <span>{opt}</span>
+                  </label>
+                ))}
               </div>
             </div>
           ))}
-          <button 
-            onClick={submitQuiz} 
-            disabled={loading} 
-            className="st-btn st-btn-secondary st-btn-full"
+          <button
+            className="st-btn st-btn--secondary st-btn--block st-btn--lg"
+            onClick={submitQuiz}
+            disabled={loading}
           >
-            {loading ? 'Grading...' : 'Submit & Grade Quiz'}
+            {loading ? 'Grading...' : 'Submit & grade quiz'}
           </button>
-        </div>
+        </section>
       )}
 
+      {/* Graded Results */}
       {graded && (
-        <div className="st-card">
-          <div className="st-score-display">
-            <h2>Score: {score}</h2>
-            <p style={{ color: 'var(--st-muted)', margin: 0 }}>Great job! Review your answers below.</p>
+        <section className="st-card">
+          <div className="st-score">
+            <h2 className="st-score-value">Score: {score}</h2>
+            <p className="st-score-note">Review your answers below.</p>
           </div>
+
           {quiz.map((q, index) => {
-            const isCorrect = answers[q.id || index] === q.correct_answer;
+            const given = answers[q.id || index];
+            const isCorrect = given === q.correct_answer;
             return (
-              <div key={q.id || index} className="st-result-block">
-                <h4 style={{ marginTop: 0, marginBottom: '16px', fontSize: '16px' }}>{index + 1}. {q.question}</h4>
-                <div className="st-result-correct" style={{ marginBottom: '8px' }}>✅ Correct: {q.correct_answer}</div>
-                <div className={isCorrect ? 'st-result-correct' : 'st-result-wrong'} style={{ marginBottom: '16px' }}>
-                  Your Answer: {answers[q.id || index] || 'No answer'}
+              <div key={q.id || index} className="st-result">
+                <h4 className="st-question-text">{index + 1}. {q.question}</h4>
+
+                <div className="st-answer st-answer--correct">
+                  <span className="st-badge">Correct</span>
+                  <span>{q.correct_answer}</span>
                 </div>
-                <button onClick={() => askAi(q)} className="st-btn st-btn-secondary" style={{ padding: '0 16px', height: '40px', fontSize: '14px' }}>
+                <div className={`st-answer ${isCorrect ? 'st-answer--correct' : 'st-answer--wrong'}`}>
+                  <span className="st-badge">Your answer</span>
+                  <span>{given || 'No answer'}</span>
+                </div>
+
+                <button className="st-btn st-btn--secondary st-btn--sm" onClick={() => askAi(q)}>
                   🤖 Ask AI to explain
                 </button>
               </div>
             );
           })}
-          <button 
-            onClick={() => { setGraded(false); setQuiz(null); }} 
-            className="st-btn st-btn-muted st-btn-full" 
-            style={{ marginTop: '16px' }}
+
+          <button
+            className="st-btn st-btn--muted st-btn--block st-reset"
+            onClick={() => { setGraded(false); setQuiz(null); }}
           >
-            Generate New Quiz
+            Generate new quiz
           </button>
-        </div>
+        </section>
       )}
 
+      {/* AI Chat Modal */}
       {showAiChat && activeQuestion && (
-        <div className="st-modal-overlay" onClick={() => setShowAiChat(false)}>
-          <div className="st-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="st-modal-header">
-              <h3>AI Tutor Explanation</h3>
-              <button onClick={() => setShowAiChat(false)} className="st-modal-close">×</button>
+        <div className="st-modal-backdrop" role="dialog" aria-modal="true" aria-label="AI tutor explanation">
+          <div className="st-modal">
+            <div className="st-modal-head">
+              <h3 className="st-modal-title">AI tutor explanation</h3>
+              <button className="st-modal-close" onClick={() => setShowAiChat(false)} aria-label="Close">×</button>
             </div>
-            
-            {aiResponse && (
-              <div className="st-ai-response">
-                {aiResponse}
-              </div>
-            )}
 
-            <div className="st-ai-input-row">
-              <input 
-                type="text" 
-                placeholder="Ask why the answer is correct..." 
-                value={aiQuestion} 
-                onChange={(e) => setAiQuestion(e.target.value)} 
-                className="st-input" 
-                style={{ flex: 1 }} 
-                onKeyDown={(e) => e.key === 'Enter' && sendAi()} 
+            {aiResponse && <div className="st-modal-response">{aiResponse}</div>}
+
+            <div className="st-modal-row">
+              <input
+                className="st-input"
+                type="text"
+                placeholder="Ask why the answer is correct..."
+                aria-label="Your question for the AI tutor"
+                value={aiQuestion}
+                onChange={(e) => setAiQuestion(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && sendAi()}
               />
-              <button 
-                onClick={sendAi} 
-                disabled={aiLoading} 
-                className="st-btn st-btn-primary"
-                style={{ padding: '0 24px' }}
-              >
+              <button className="st-btn st-btn--primary" onClick={sendAi} disabled={aiLoading}>
                 {aiLoading ? '...' : 'Send'}
               </button>
             </div>
