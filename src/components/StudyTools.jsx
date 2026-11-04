@@ -24,7 +24,41 @@ export default function StudyTools() {
   const [aiResponse, setAiResponse] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
 
-  // Fetch all available documents (Private uploads + Public Library)
+  // Common Styles
+  const inputStyle = {
+    padding: '0.75rem',
+    borderRadius: '8px',
+    border: '1px solid #d1d5db',
+    fontSize: '0.95rem',
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
+    background: '#fff'
+  };
+
+  const primaryBtnStyle = {
+    padding: '0.75rem 1.5rem',
+    background: '#0d9488', // Teal color
+    color: 'white',
+    borderRadius: '8px',
+    border: 'none',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontSize: '0.95rem',
+    whiteSpace: 'nowrap'
+  };
+
+  const secondaryBtnStyle = {
+    padding: '0.75rem 1.5rem',
+    background: '#4b5563',
+    color: 'white',
+    borderRadius: '8px',
+    border: 'none',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontSize: '0.95rem'
+  };
+
   useEffect(() => {
     const fetchBooks = async () => {
       try {
@@ -32,15 +66,12 @@ export default function StudyTools() {
           bookService.getBooks(),
           libraryService.getPublicLibrary()
         ]);
-        // Combine them and add a type label for the dropdown
         const allDocs = [
           ...(myBooks || []).map(b => ({ ...b, label: `📁 My Upload: ${b.title}` })),
-          ...(publicBooks || []).map(b => ({ ...b, label: `📚 Public Library: ${b.title}` }))
+          ...(publicBooks || []).map(b => ({ ...b, label: `📚 Public: ${b.title}` }))
         ];
         setBooks(allDocs);
-      } catch (err) {
-        console.error("Failed to fetch books", err);
-      }
+      } catch (err) { console.error("Failed to fetch books", err); }
     };
     fetchBooks();
   }, []);
@@ -49,193 +80,122 @@ export default function StudyTools() {
     if (!uploadFile || !uploadTitle) return alert("Please select a file and enter a title.");
     setUploading(true);
     try {
-      // Upload the file (defaults to 'textbook' type)
       const newBook = await bookService.uploadFile(uploadFile, uploadTitle, '12', uploadSubject || 'General', 'textbook');
-      alert("Upload successful! Generating quiz...");
+      alert("Upload successful! It is now selected for your quiz.");
       
-      // Refresh books and auto-select the new one
       const [myBooks, publicBooks] = await Promise.all([bookService.getBooks(), libraryService.getPublicLibrary()]);
-      const allDocs = [...(myBooks || []), ...(publicBooks || [])];
+      const allDocs = [...(myBooks || []).map(b => ({ ...b, label: `📁 My Upload: ${b.title}` })), ...(publicBooks || []).map(b => ({ ...b, label: `📚 Public: ${b.title}` }))];
       setBooks(allDocs);
       setSelectedBookId(newBook.id);
       
-      // Clear upload form
-      setUploadFile(null);
-      setUploadTitle('');
-      setUploadSubject('');
-    } catch (err) {
-      alert("Upload failed: " + (err.response?.data?.detail || "Unknown error"));
-    } finally {
-      setUploading(false);
-    }
+      setUploadFile(null); setUploadTitle(''); setUploadSubject('');
+    } catch (err) { alert("Upload failed: " + (err.response?.data?.detail || "Unknown error")); } 
+    finally { setUploading(false); }
   };
 
   const generateQuiz = async () => {
     if (!selectedBookId) return alert("Please select or upload a document first.");
-    setLoading(true);
-    setGraded(false);
-    setQuiz(null);
-    setAnswers({});
+    setLoading(true); setGraded(false); setQuiz(null); setAnswers({});
     try {
       const data = await tutorService.generateQuiz(selectedBookId, numQuestions);
-      setQuiz(data.questions || data); // Adjust based on your backend response structure
-    } catch (err) {
-      alert("Failed to generate quiz.");
-    } finally {
-      setLoading(false);
-    }
+      setQuiz(data.questions || data);
+    } catch (err) { alert("Failed to generate quiz."); } 
+    finally { setLoading(false); }
   };
 
   const submitQuiz = async () => {
     setLoading(true);
     try {
       const data = await tutorService.gradeQuiz(quiz, answers);
-      setScore(data.score);
-      setGraded(true);
-    } catch (err) {
-      alert("Failed to grade quiz.");
-    } finally {
-      setLoading(false);
-    }
+      setScore(data.score); setGraded(true);
+    } catch (err) { alert("Failed to grade quiz."); } 
+    finally { setLoading(false); }
   };
 
-  const askAiAboutQuestion = (questionObj) => {
-    setActiveQuestion(questionObj);
-    setShowAiChat(true);
-    setAiResponse('');
-    setAiQuestion('');
-  };
+  const askAiAboutQuestion = (q) => { setActiveQuestion(q); setShowAiChat(true); setAiResponse(''); setAiQuestion(''); };
 
   const sendAiQuestion = async () => {
     if (!aiQuestion.trim()) return;
     setAiLoading(true);
     try {
-      // Craft a specific prompt for the AI to explain the mistake
-      const prompt = `The student is asking about this quiz question: "${activeQuestion.question}". 
-      The correct answer is: "${activeQuestion.correct_answer}". 
-      The student answered: "${answers[activeQuestion.id] || 'No answer'}". 
-      Student's question: "${aiQuestion}". 
-      Please explain clearly why the correct answer is right and why the student's answer was wrong (if applicable).`;
-      
+      const prompt = `The student is asking about this quiz question: "${activeQuestion.question}". The correct answer is: "${activeQuestion.correct_answer}". The student answered: "${answers[activeQuestion.id] || 'No answer'}". Student's question: "${aiQuestion}". Please explain clearly why the correct answer is right and why the student's answer was wrong.`;
       const response = await tutorService.askQuestion(prompt, 'English', selectedBookId, null, null);
       setAiResponse(response.answer);
-    } catch (err) {
-      setAiResponse("Sorry, I couldn't process that.");
-    } finally {
-      setAiLoading(false);
-    }
+    } catch (err) { setAiResponse("Sorry, I couldn't process that."); } 
+    finally { setAiLoading(false); }
   };
 
   return (
-    <div style={{ padding: '1.5rem', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '0.5rem' }}>Quiz Generator</h1>
-      <p style={{ color: '#666', marginBottom: '1.5rem' }}>Upload a document or select an existing one to generate a custom quiz.</p>
+    <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif', color: '#1f2937' }}>
+      <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem', color: '#111827' }}>Quiz Generator</h1>
+      <p style={{ color: '#6b7280', marginBottom: '2rem', fontSize: '1.05rem' }}>Upload a document or select an existing one to generate a custom quiz.</p>
 
       {/* Upload Section */}
-      <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.5rem', border: '1px solid #e9ecef' }}>
-        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem' }}>📤 Upload a New Document for this Quiz</h3>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <input 
-            type="text" placeholder="Document Title (e.g., Biology Notes Ch1)" 
-            value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)}
-            style={{ flex: 2, padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #ccc' }}
-          />
-          <input 
-            type="text" placeholder="Subject (Optional)" 
-            value={uploadSubject} onChange={(e) => setUploadSubject(e.target.value)}
-            style={{ flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #ccc' }}
-          />
-          <input 
-            type="file" accept=".pdf,.pptx" 
-            onChange={(e) => setUploadFile(e.target.files[0])}
-            style={{ flex: 1, padding: '0.4rem' }}
-          />
-          <button 
-            onClick={handleUpload} disabled={uploading}
-            style={{ padding: '0.6rem 1rem', background: uploading ? '#9ca3af' : '#4f46e5', color: 'white', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 600 }}
-          >
-            {uploading ? 'Uploading...' : 'Upload'}
+      <div style={{ background: '#f9fafb', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem', border: '1px solid #e5e7eb' }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: '#374151' }}>📤 Upload a New Document</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr auto', gap: '0.75rem', alignItems: 'center' }}>
+          <input type="text" placeholder="Document Title (e.g., Biology Ch1)" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} style={inputStyle} />
+          <input type="text" placeholder="Subject (Optional)" value={uploadSubject} onChange={(e) => setUploadSubject(e.target.value)} style={inputStyle} />
+          <input type="file" accept=".pdf,.pptx" onChange={(e) => setUploadFile(e.target.files[0])} style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.9rem' }} />
+          <button onClick={handleUpload} disabled={uploading} style={{ ...primaryBtnStyle, opacity: uploading ? 0.7 : 1 }}>
+            {uploading ? '...' : 'Upload'}
           </button>
         </div>
       </div>
 
       {/* Quiz Settings */}
-      <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', marginBottom: '1.5rem' }}>
-        <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Select a Document</label>
-        <select 
-          value={selectedBookId} onChange={(e) => setSelectedBookId(e.target.value)}
-          style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #ccc', marginBottom: '1rem', fontSize: '1rem' }}
-        >
+      <div style={{ background: '#ffffff', padding: '2rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', marginBottom: '2rem', border: '1px solid #f3f4f6' }}>
+        <label style={{ fontWeight: 700, display: 'block', marginBottom: '0.5rem', fontSize: '1.05rem' }}>Select a Document</label>
+        <select value={selectedBookId} onChange={(e) => setSelectedBookId(e.target.value)} style={{ ...inputStyle, marginBottom: '1.5rem', appearance: 'auto' }}>
           <option value="">Choose a book or your uploaded doc...</option>
-          {books.map(book => (
-            <option key={book.id} value={book.id}>{book.label || book.title}</option>
-          ))}
+          {books.map(book => <option key={book.id} value={book.id}>{book.label || book.title}</option>)}
         </select>
 
-        <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Number of Questions: {numQuestions}</label>
-        <input 
-          type="range" min="1" max="20" value={numQuestions} onChange={(e) => setNumQuestions(e.target.value)}
-          style={{ width: '100%', marginBottom: '1.5rem' }}
-        />
+        <label style={{ fontWeight: 700, display: 'block', marginBottom: '0.5rem', fontSize: '1.05rem' }}>Number of Questions: <span style={{color: '#0d9488'}}>{numQuestions}</span></label>
+        <input type="range" min="1" max="20" value={numQuestions} onChange={(e) => setNumQuestions(e.target.value)} style={{ width: '100%', marginBottom: '2rem', accentColor: '#0d9488' }} />
 
-        <button 
-          onClick={generateQuiz} disabled={loading || !selectedBookId}
-          style={{ width: '100%', padding: '1rem', background: loading ? '#9ca3af' : '#10b981', color: 'white', borderRadius: '0.5rem', border: 'none', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}
-        >
+        <button onClick={generateQuiz} disabled={loading || !selectedBookId} style={{ width: '100%', padding: '1rem', background: loading ? '#9ca3af' : '#10b981', color: 'white', borderRadius: '10px', border: 'none', fontSize: '1.15rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }}>
           {loading ? 'Generating...' : '🎯 Generate Quiz'}
         </button>
       </div>
 
       {/* Quiz Display */}
       {quiz && !graded && (
-        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+        <div style={{ background: '#ffffff', padding: '2rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
           {quiz.map((q, index) => (
-            <div key={q.id || index} style={{ marginBottom: '2rem', borderBottom: '1px solid #eee', paddingBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>{index + 1}. {q.question}</h3>
+            <div key={q.id || index} style={{ marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: index !== quiz.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: 600 }}>{index + 1}. {q.question}</h3>
               {q.options?.map((opt, i) => (
-                <label key={i} style={{ display: 'block', marginBottom: '0.5rem', cursor: 'pointer' }}>
-                  <input 
-                    type="radio" name={`q-${index}`} value={opt} 
-                    onChange={() => setAnswers({...answers, [q.id || index]: opt})}
-                    style={{ marginRight: '0.5rem' }}
-                  />
-                  {opt}
+                <label key={i} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.75rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px', transition: 'background 0.2s' }}>
+                  <input type="radio" name={`q-${index}`} value={opt} onChange={() => setAnswers({...answers, [q.id || index]: opt})} style={{ marginRight: '0.75rem', accentColor: '#0d9488', transform: 'scale(1.2)' }} />
+                  <span style={{fontSize: '1rem'}}>{opt}</span>
                 </label>
               ))}
             </div>
           ))}
-          <button 
-            onClick={submitQuiz} disabled={loading}
-            style={{ width: '100%', padding: '1rem', background: '#4f46e5', color: 'white', borderRadius: '0.5rem', border: 'none', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}
-          >
+          <button onClick={submitQuiz} disabled={loading} style={{ width: '100%', padding: '1rem', background: '#4f46e5', color: 'white', borderRadius: '10px', border: 'none', fontSize: '1.15rem', fontWeight: 700, cursor: 'pointer' }}>
             {loading ? 'Grading...' : 'Submit & Grade Quiz'}
           </button>
         </div>
       )}
 
-      {/* Graded Results with "Ask AI" */}
+      {/* Graded Results */}
       {graded && (
-        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-          <h2 style={{ textAlign: 'center', color: '#10b981' }}>You scored {score}!</h2>
+        <div style={{ background: '#ffffff', padding: '2rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+          <h2 style={{ textAlign: 'center', color: '#10b981', fontSize: '2rem', marginBottom: '2rem' }}>You scored {score}!</h2>
           {quiz.map((q, index) => (
-            <div key={q.id || index} style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f8f9fa', borderRadius: '0.5rem' }}>
-              <h4 style={{ marginBottom: '0.5rem' }}>{index + 1}. {q.question}</h4>
-              <p style={{ color: 'green', fontWeight: 600 }}>✅ Correct Answer: {q.correct_answer}</p>
-              <p style={{ color: answers[q.id || index] === q.correct_answer ? 'green' : 'red', fontWeight: 600 }}>
+            <div key={q.id || index} style={{ marginBottom: '1.5rem', padding: '1.5rem', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+              <h4 style={{ marginBottom: '1rem', fontSize: '1.05rem' }}>{index + 1}. {q.question}</h4>
+              <p style={{ color: '#059669', fontWeight: 600, marginBottom: '0.5rem' }}>✅ Correct Answer: {q.correct_answer}</p>
+              <p style={{ color: answers[q.id || index] === q.correct_answer ? '#059669' : '#dc2626', fontWeight: 600, marginBottom: '1rem' }}>
                 Your Answer: {answers[q.id || index] || 'No answer'}
               </p>
-              <button 
-                onClick={() => askAiAboutQuestion(q)}
-                style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}
-              >
-                🤖 Ask AI to explain this question
+              <button onClick={() => askAiAboutQuestion(q)} style={{ padding: '0.6rem 1.2rem', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>
+                🤖 Ask AI to explain this
               </button>
             </div>
           ))}
-          <button 
-            onClick={() => { setGraded(false); setQuiz(null); }}
-            style={{ width: '100%', padding: '1rem', background: '#6b7280', color: 'white', borderRadius: '0.5rem', border: 'none', cursor: 'pointer' }}
-          >
+          <button onClick={() => { setGraded(false); setQuiz(null); }} style={{ width: '100%', padding: '1rem', background: '#6b7280', color: 'white', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, marginTop: '1rem' }}>
             Generate New Quiz
           </button>
         </div>
@@ -243,34 +203,26 @@ export default function StudyTools() {
 
       {/* AI Chat Modal */}
       {showAiChat && activeQuestion && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', width: '90%', maxWidth: '500px', maxHeight: '80vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h3>Ask AI Tutor</h3>
-              <button onClick={() => setShowAiChat(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div style={{ background: 'white', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '500px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+              <h3 style={{margin: 0}}>Ask AI Tutor</h3>
+              <button onClick={() => setShowAiChat(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6b7280' }}>×</button>
             </div>
-            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
-              Question: {activeQuestion.question}<br/>
-              Correct: {activeQuestion.correct_answer}
-            </p>
+            <div style={{ background: '#f3f4f6', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.9rem', color: '#4b5563' }}>
+              <strong>Question:</strong> {activeQuestion.question}<br/>
+              <strong style={{color: '#059669'}}>Correct:</strong> {activeQuestion.correct_answer}
+            </div>
             
             {aiResponse && (
-              <div style={{ background: '#f3f4f6', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem', whiteSpace: 'pre-wrap' }}>
+              <div style={{ background: '#ecfdf5', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', whiteSpace: 'pre-wrap', border: '1px solid #a7f3d0', color: '#065f46' }}>
                 {aiResponse}
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input 
-                type="text" placeholder="e.g., Why is B wrong?" 
-                value={aiQuestion} onChange={(e) => setAiQuestion(e.target.value)}
-                style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #ccc' }}
-                onKeyDown={(e) => e.key === 'Enter' && sendAiQuestion()}
-              />
-              <button 
-                onClick={sendAiQuestion} disabled={aiLoading}
-                style={{ padding: '0.75rem 1rem', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer' }}
-              >
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <input type="text" placeholder="e.g., Why is B wrong?" value={aiQuestion} onChange={(e) => setAiQuestion(e.target.value)} style={{ ...inputStyle, flex: 1 }} onKeyDown={(e) => e.key === 'Enter' && sendAiQuestion()} />
+              <button onClick={sendAiQuestion} disabled={aiLoading} style={{ ...primaryBtnStyle, padding: '0.75rem 1.5rem' }}>
                 {aiLoading ? '...' : 'Send'}
               </button>
             </div>
