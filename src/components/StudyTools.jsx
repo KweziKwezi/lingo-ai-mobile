@@ -62,33 +62,16 @@ export default function StudyTools() {
     } finally { setLoading(false); }
   };
 
-  const submitQuiz = async () => {
-    setLoading(true);
-    try {
-      const data = await tutorService.gradeQuiz(quiz, answers);
-      setScore(data.score); setGraded(true);
-    } catch (err) { alert("Failed to grade."); } finally { setLoading(false); }
-  };
-
-  const getEvaluation = async (q, index) => {
+  const fetchEvaluation = async (q, index) => {
     const qId = q.id || index;
+    setExplainingId(qId); // Show loading state for this specific question
     
-    // Toggle off if already open
-    if (explanations[qId]) {
-      const newExplanations = { ...explanations };
-      delete newExplanations[qId];
-      setExplanations(newExplanations);
-      return;
-    }
-
-    setExplainingId(qId);
     try {
       const given = answers[qId] || 'No answer provided';
       const isOpenEnded = !q.options || q.options.length === 0;
       
       let prompt = "";
       if (isOpenEnded) {
-        // Open-ended specific prompt: AI scans doc to find the ideal answer and evaluates the student
         prompt = `This is an open-ended question: "${q.question}". 
         The student answered: "${given}". 
         Please scan the provided document context and provide:
@@ -96,7 +79,6 @@ export default function StudyTools() {
         2. A brief, encouraging evaluation of the student's answer, pointing out exactly what they got right and what key details they missed compared to the ideal answer.
         Format your response clearly with "✅ Ideal Answer:" and "📝 Evaluation:".`;
       } else {
-        // Multiple choice specific prompt
         let correctAnswerText = q.correct_answer || q.answer || 'Not provided';
         if (Array.isArray(q.options)) {
           const numIdx = parseInt(correctAnswerText, 10);
@@ -127,6 +109,24 @@ export default function StudyTools() {
     } finally {
       setExplainingId(null);
     }
+  };
+
+  const submitQuiz = async () => {
+    setLoading(true);
+    try {
+      // 1. Grade the quiz first (fast)
+      const data = await tutorService.gradeQuiz(quiz, answers);
+      setScore(data.score); 
+      setGraded(true);
+      
+      // 2. Automatically evaluate open-ended questions sequentially to avoid rate limits
+      const openEndedQuestions = quiz.filter(q => !q.options || q.options.length === 0);
+      for (const q of openEndedQuestions) {
+        const index = quiz.indexOf(q);
+        await fetchEvaluation(q, index);
+      }
+    } catch (err) { alert("Failed to grade."); } 
+    finally { setLoading(false); }
   };
 
   return (
@@ -230,7 +230,7 @@ export default function StudyTools() {
         <section className="st-card">
           <div className="st-score">
             <h2 className="st-score-value">Your Score: {score || 'N/A'}</h2>
-            <p className="st-score-note">Review your answers and AI evaluations below.</p>
+            <p className="st-score-note">Review your answers below.</p>
           </div>
 
           {quiz.map((q, index) => {
@@ -238,7 +238,6 @@ export default function StudyTools() {
             const given = answers[qId] || 'No answer';
             const isOpenEnded = !q.options || q.options.length === 0;
             
-            // Resolve correct answer text for multiple choice
             let correctAnswerText = q.correct_answer || q.answer || '';
             if (!isOpenEnded && Array.isArray(q.options)) {
               const numIdx = parseInt(correctAnswerText, 10);
@@ -253,45 +252,54 @@ export default function StudyTools() {
               }
             }
 
-            // For open-ended, we rely on the AI evaluation, so we don't show a rigid "Correct/Incorrect" badge initially
             const isCorrect = isOpenEnded ? true : (String(given).trim().toLowerCase() === String(correctAnswerText).trim().toLowerCase());
 
             return (
               <div key={qId} className="st-result">
                 <h4 className="st-question-text">{index + 1}. {q.question}</h4>
 
-                <div className={`st-answer ${isOpenEnded ? 'st-answer--neutral' : (isCorrect ? 'st-answer--correct' : 'st-answer--wrong')}`}>
-                  <span className="st-badge">{isOpenEnded ? 'Your Answer' : (isCorrect ? 'Your Answer' : 'Your Answer (Incorrect)')}</span>
-                  <span>{given}</span>
-                </div>
+                {/* OPEN-ENDED LOGIC (Automatic Evaluation) */}
+                {isOpenEnded ? (
+                  <>
+                    <div className="st-answer st-answer--neutral">
+                      <span className="st-badge">Your Answer</span>
+                      <span>{given}</span>
+                    </div>
+                    {explainingId === qId && (
+                      <div className="st-loading-ai">⏳ AI is scanning the document to evaluate your answer...</div>
+                    )}
+                    {explanations[qId] && (
+                      <div className="st-explanation">{explanations[qId]}</div>
+                    )}
+                  </>
+                ) : (
+                  /* MULTIPLE CHOICE LOGIC (Manual Explanation) */
+                  <>
+                    <div className={`st-answer ${isCorrect ? 'st-answer--correct' : 'st-answer--wrong'}`}>
+                      <span className="st-badge">{isCorrect ? 'Your Answer' : 'Your Answer (Incorrect)'}</span>
+                      <span>{given}</span>
+                    </div>
 
-                {!isOpenEnded && !isCorrect && (
-                  <div className="st-answer st-answer--correct">
-                    <span className="st-badge">Correct Answer</span>
-                    <span>{correctAnswerText}</span>
-                  </div>
-                )}
+                    {!isCorrect && (
+                      <div className="st-answer st-answer--correct">
+                        <span className="st-badge">Correct Answer</span>
+                        <span>{correctAnswerText}</span>
+                      </div>
+                    )}
 
-                {isOpenEnded && !explanations[qId] && (
-                  <div className="st-answer st-answer--neutral" style={{ borderStyle: 'dashed' }}>
-                    <span className="st-badge">AI Evaluation</span>
-                    <span>Click below to have the AI scan the document and evaluate your answer.</span>
-                  </div>
-                )}
+                    <button 
+                      className="st-btn st-btn--secondary st-btn--sm" 
+                      onClick={() => fetchEvaluation(q, index)}
+                      disabled={explainingId === qId}
+                      style={{ marginTop: '12px' }}
+                    >
+                      {explainingId === qId ? '⏳ Thinking...' : (explanations[qId] ? '❌ Hide Explanation' : '💡 Explain my mistake')}
+                    </button>
 
-                <button 
-                  className="st-btn st-btn--secondary st-btn--sm" 
-                  onClick={() => getEvaluation(q, index)}
-                  disabled={explainingId === qId}
-                  style={{ marginTop: '12px' }}
-                >
-                  {explainingId === qId ? '⏳ Scanning document...' : (explanations[qId] ? '❌ Hide Evaluation' : (isOpenEnded ? '💡 Get AI Evaluation & Correct Answer' : '💡 Explain my mistake'))}
-                </button>
-
-                {explanations[qId] && (
-                  <div className="st-explanation">
-                    {explanations[qId]}
-                  </div>
+                    {explanations[qId] && (
+                      <div className="st-explanation">{explanations[qId]}</div>
+                    )}
+                  </>
                 )}
               </div>
             );

@@ -439,3 +439,21 @@
   background: #e2e8f0;
   color: #475569;
 }
+/* AI Loading State */
+.st-page .st-loading-ai {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px dashed var(--st-border);
+  border-radius: 10px;
+  color: var(--st-muted);
+  font-size: 14px;
+  font-style: italic;
+  animation: st-pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes st-pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
